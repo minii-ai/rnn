@@ -37,7 +37,7 @@ RNNs are a type of neural net that operate on sequences. They use a hidden state
 RNNs have a simple API. They take in a hidden state vector and an input vector to produce an output vector and the next hidden state.
 
 **Weights and Bias Matrices**
-$$W_{xh}\in \R^{n \times m}, \ W_{hh} \in ({n \times n}), b_h \in ({1 \times n}) $$
+$$W_{xh}\in ({n \times m}), \ W_{hh} \in ({n \times n}), b_h \in ({1 \times n}) $$
 $$W_{hy} \in ({l \times n}), b_y \in ({1 \times l})$$
 
 **Input Vector**
