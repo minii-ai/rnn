@@ -37,31 +37,31 @@ RNNs are a type of neural net that operate on sequences. They use a hidden state
 RNNs have a simple API. They take in a hidden state vector and an input vector to produce an output vector and the next hidden state.
 
 **Weights and Bias Matrices**
-$$W_{xh}\in \R^{n \times m}, \ W_{hh} \in \R^{n \times n}, b_h \in \R^{1 \times n} $$
-$$W_{hy} \in \R^{l \times n}, b_y \in \R^{1 \times l}$$
+$$W_{xh}\in \R^{n \times m}, \ W_{hh} \in ({n \times n}), b_h \in ({1 \times n}) $$
+$$W_{hy} \in ({l \times n}), b_y \in ({1 \times l})$$
 
 **Input Vector**
-$$x_t \in \R^{1 \times m}$$
+$$x_t \in ({1 \times m})$$
 
 **Hidden State Vector**
-$$h_t \in \R^{1 \times n}$$
+$$h_t \in ({1 \times n})$$
 
 **Foward Pass**
 
 We have all the ingredients for the forward pass! Our choice of activation is `tanh` and `softmax`. Tanh squeezes the activations between -1 and 1 and softmax gives us output probabilities.
 
-```math
-z_t^h = x_tW_{xh}^{T} + h_{t-1}W_{hh}^{T} + b_h \\
-```
-```math
+$$
+z_t^h = x_tW_{xh}^{T} + h_{t-1}W_{hh}^{T} + b_h
+$$
+$$
 h_t = \tanh(a_t)
-```
-```math
-z_t^y = h_tW_{hy}^{T} + b_y \\
-```
-```math
+$$
+$$
+z_t^y = h_tW_{hy}^{T} + b_y
+$$
+$$
 \hat{y}_t = \text{softmax}(b_t)
-```
+$$
 
 ## Backward Pass
 
@@ -71,10 +71,10 @@ After the forward pass, we'll compute the loss and gradients of the weight and b
 
 We use cross entropy loss between the predicted token probability and the target token across all time steps.
 
-```math
+$$
 L = \sum_{t=1}^{T}L_t(\hat{y}_t, y_t) = \sum_{t=1}^{T}{\sum_{i = 1}^{C}-y_t^i
 \log(\hat{y}_t^i)}
-```
+$$
 
 ### Backpropagation Through Time
 
