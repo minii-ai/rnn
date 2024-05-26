@@ -91,14 +91,17 @@ Note $\odot$ is a Hadamard product, it is multiplication applied element-wise. I
 
 
 #### Gradient of Loss w.r.t $z_t^y$
+
+Gradient of the softmax function. 
+
 $$
 \frac{\partial L_t}{\partial z_t^y} = \hat{y_t} - y_t \in (1 \times l)
 $$
 
-#### Useful Gradients to know
+#### Gradient of Tanh
 $$\frac{\partial \tanh(u)}{\partial u} = 1 - \tanh(u)^2$$
 
-#### Gradient of Tanh
+#### Gradient of 1st Layer
 
 $$
 \frac{\partial L}{\partial W_{hy}} = \sum_{t=1}^T \frac{\partial z_t^y}{\partial W_{hy}} \frac{\partial L_t}{\partial z_t^y}^T = \sum_{t=1}^Th_t \odot (\hat{y_t} - y_t)^T \in (l \times n)
@@ -152,25 +155,22 @@ $$
 $$
 
 
-
-
-
 #### Gradient of hidden state weight matrices
 
 Let's calculate them now!
 
 $$
-\frac{\partial L}{\partial W_{xh}} = \sum_{t=1}^{T} \frac{\partial z_t^h}{\partial W_{xh}} \frac{\partial h_t}{\partial z_t^h} \frac{\partial F_{t-1}}{\partial h_t} = \sum_{t=1}^T x_t \odot (1 - h_t^2)
+\frac{\partial L}{\partial W_{xh}} = \sum_{t=1}^{T} \frac{\partial z_t^h}{\partial W_{xh}} \frac{\partial h_t}{\partial z_t^h} \frac{\partial F_{t-1}}{\partial h_t} = \sum_{t=1}^T x_t \odot (1 - h_t^2) ^T  \odot (\frac{\partial F_{t-1}}{\partial h_t})^T
 $$
 
 $$
-\frac{\partial L}{\partial W_{hh}} = \sum_{t=1}^{T} \frac{\partial z_t^h}{\partial W_{xh}} \frac{\partial h_t}{\partial z_t^h} \frac{\partial F_{t-1}}{\partial h_t} = \sum_{t=1}^T x_t \odot (1 - h_t^2)
+\frac{\partial L}{\partial W_{hh}} = \sum_{t=1}^{T} \frac{\partial z_t^h}{\partial W_{xh}} \frac{\partial h_t}{\partial z_t^h} \frac{\partial F_{t-1}}{\partial h_t} = \sum_{t=1}^T x_t \odot (1 - h_t^2) \odot (\frac{\partial F_{t-1}}{\partial h_t})^T
 $$
 
 
 #### Gradient of hidden state bias vector
 $$
-\frac{\partial L}{\partial b_{h}} = \sum_{t=1}^{T} \frac{\partial z_t^h}{\partial W_{xh}} \frac{\partial h_t}{\partial z_t^h} \frac{\partial F_{t-1}}{\partial h_t} = \sum_{t=1}^T (1 - h_t^2)
+\frac{\partial L}{\partial b_{h}} = \sum_{t=1}^{T} \frac{\partial z_t^h}{\partial W_{xh}} \frac{\partial h_t}{\partial z_t^h} \frac{\partial F_{t-1}}{\partial h_t} = \sum_{t=1}^T (1 - h_t^2) \odot \frac{\partial F_{t-1}}{\partial h_t}
 $$
 
 
@@ -179,3 +179,6 @@ $$
 We go in the opposite direction of the gradient to minimize the loss.
 
 ## Resources
+
+- https://gist.github.com/karpathy/d4dee566867f8291f086
+- https://cs231n.github.io/neural-networks-case-study/#grad
