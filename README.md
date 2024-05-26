@@ -156,7 +156,7 @@ $$
 Everything is going to come together nicely now.
 
 $$
-\frac{\partial F_{t-1}}{\partial h_t} = \frac{\partial L_t}{\partial h_t} + \frac{\partial}{\partial h_t} \sum_{u = t + 1}^TL_u = (\hat{y_t} - y_t)W_{hy} + \delta^{h_t}
+\frac{\partial F_{t-1}}{\partial h_t} = \frac{\partial L_t}{\partial h_t} + \frac{\partial}{\partial h_t} \sum_{u = t + 1}^TL_u = \frac{\partial L_t}{\partial h_t} + \delta^{h_t}
 $$
 
 
