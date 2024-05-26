@@ -52,8 +52,15 @@ We have all the ingredients for the forward pass! Our choice of activation is `t
 
 $$z_t^h = x_tW_{xh}^{T} + h_{t-1}W_{hh}^{T} + b_h$$
 
-```math
+<!-- ```math
 \left( \sum_{k=1}^n a_k b_k \right)^2 \leq \left( \sum_{k=1}^n a_k^2 \right) \left( \sum_{k=1}^n b_k^2 \right)
+``` -->
+
+```math
+z_t^h = x_tW_{xh}^{T} + h_{t-1}W_{hh}^{T} + b_h
+h_t = \tanh(a_t)
+z_t^y = h_tW_{hy}^{T} + b_y
+\hat{y}_t = \text{softmax}(b_t)
 ```
 
 $$h_t = \tanh(a_t) $$
