@@ -141,6 +141,16 @@ $$
 $$
 
 
+#### Gradient of current + future loss w.r.t hidden state
+
+Everything is going to come together nicely now.
+
+```math
+\frac{\partial F_{t-1}}{\partial h_t} = \frac{\partial L_t}{\partial h_t} + \frac{\partial}{\partial h_t} \sum_{u = t + 1}^TL_u \\
+= 
+```
+
+
 
 Let's calculate them now!
 
