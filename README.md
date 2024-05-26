@@ -119,10 +119,9 @@ $$F_{t - 1} = L_t + \sum_{u = t + 1}^TL_u$$
 
 #### Gradient of Future Loss w.r.t hidden state
 
-$$\begin{align*}
-\delta^{h_{t-1}} &= \frac{\partial F_{t-1}}{\partial h_{t-1}} \\ &= \frac{\partial}{\partial h_{t-1}} {\sum_{u = t}^TL_u} \\ &= \frac{\partial h_t}{\partial h_{t-1}}\frac{\partial}{\partial h_t} {\sum_{u = t}^TL_u} \\ &= \frac{\partial h_t}{\partial h_{t-1}} (\frac{\partial L_t}{\partial h_t} + \frac{\partial}{\partial h_t}\sum_{u = t + 1}^TL_u) \\ &= \frac{\partial h_t}{\partial h_{t-1}} (\frac{\partial L_t}{\partial h_t} + \delta^{h_t})
-
-\end{align*}$$
+$$
+\delta^{h_{t-1}} = \frac{\partial F_{t-1}}{\partial h_{t-1}} = \frac{\partial}{\partial h_{t-1}} {\sum_{u = t}^TL_u} = \frac{\partial h_t}{\partial h_{t-1}}\frac{\partial}{\partial h_t} {\sum_{u = t}^TL_u} = \frac{\partial h_t}{\partial h_{t-1}} (\frac{\partial L_t}{\partial h_t} + \frac{\partial}{\partial h_t}\sum_{u = t + 1}^TL_u) = \frac{\partial h_t}{\partial h_{t-1}} (\frac{\partial L_t}{\partial h_t} + \delta^{h_t})
+$$
 
 
 #### Gradient of Loss w.r.t hidden state
@@ -145,12 +144,15 @@ $$
 
 Everything is going to come together nicely now.
 
-```math
-\frac{\partial F_{t-1}}{\partial h_t} = \frac{\partial L_t}{\partial h_t} + \frac{\partial}{\partial h_t} \sum_{u = t + 1}^TL_u \\
-= 
-```
+$$
+\frac{\partial F_{t-1}}{\partial h_t} = \frac{\partial L_t}{\partial h_t} + \frac{\partial}{\partial h_t} \sum_{u = t + 1}^TL_u = (\hat{y_t} - y_t)W_{hy} + \delta^{h_t}
+$$
 
 
+
+
+
+#### Gradient of hidden state weight matrices
 
 Let's calculate them now!
 
@@ -162,6 +164,8 @@ $$
 \frac{\partial L}{\partial W_{hh}} = \sum_{t=1}^{T} \frac{\partial z_t^h}{\partial W_{xh}} \frac{\partial h_t}{\partial z_t^h} \frac{\partial F_{t-1}}{\partial h_t} = \sum_{t=1}^T x_t \odot (1 - h_t^2)
 $$
 
+
+#### Gradient of hidden state bias vector
 $$
 \frac{\partial L}{\partial b_{h}} = \sum_{t=1}^{T} \frac{\partial z_t^h}{\partial W_{xh}} \frac{\partial h_t}{\partial z_t^h} \frac{\partial F_{t-1}}{\partial h_t} = \sum_{t=1}^T (1 - h_t^2)
 $$
