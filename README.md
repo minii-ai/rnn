@@ -63,8 +63,8 @@ After the forward pass, we'll compute the loss and gradients of the weight and b
 
 We use cross entropy loss between the predicted token probability and the target token across all time steps.
 
-$$L = \sum_{t=1}^{T}L_t(\hat{y}_t, y_t) = \sum_{t=1}^{T}\sum_{i = 1}^{C}-y_t^i
-\log(\hat{y}_t^i)$$
+$$L = \sum_{t=1}^{T}L_t(\hat{y}_t, y_t) = \sum_{t=1}^{T}{\sum_{i = 1}^{C}-y_t^i
+\log(\hat{y}_t^i)}$$
 
 ### Backpropagation Through Time
 
@@ -74,6 +74,7 @@ The hardest part is keeping track of matrix shapes. Do multiply the shapes of th
 
 Hopefully you'll come to the same result! My derivation is slightly different because I use row vectors instead of column vectors (ie. $x_t \in \R^{1 \times m}$).
 
+Note $\odot$ is a Hadamard product, it is multiplication applied element-wise. It is also broadcastable so a product between $(1 \times m)$ and $(n \times 1)$ is $(n \times m)$. 
 
 $$
 \frac{\partial L_t}{\partial b_t} = \hat{y_t} - y_t \in (1 \times l)
@@ -82,7 +83,7 @@ $$
 **Useful Gradients to know**
 $$\frac{\partial \tanh(u)}{\partial u} = 1 - \tanh(u)^2$$
 
-**Gradients of 1st Layer**
+**Gradient of Tanh**
 
 $$
 \frac{\partial L}{\partial W_{hy}} = \sum_{t=1}^T \frac{\partial z_t^y}{\partial W_{hy}} \frac{\partial L_t}{\partial z_t^y}^T = \sum_{t=1}^Th_t \odot (\hat{y_t} - y_t)^T \in (l \times n)
@@ -97,9 +98,17 @@ $$
 
 Let's define some terms which will be useful. This is the most tricky layer.
 
-*Future loss*
+
 $$
 F_t = \sum_{u = t + 1}^TL_u
+$$
+
+
+$$
+\begin{align*}
+\delta^{h_{t-1}} &= \frac{\partial F_{t-1}}{\partial h_{t-1}} \\ &= \frac{\partial}{\partial h_{t-1}} {\sum_{u = t}^TL_u} \\ &= \frac{\partial h_t}{\partial h_{t-1}}\frac{\partial}{\partial h_t} {\sum_{u = t}^TL_u} \\ &= \frac{\partial h_t}{\partial h_{t-1}} (\frac{\partial L_t}{\partial h_t} + \frac{\partial}{\partial h_t}\sum_{u = t + 1}^TL_u) \\ &= \frac{\partial h_t}{\partial h_{t-1}} (\frac{\partial L_t}{\partial h_t} + \delta^{h_t})
+
+\end{align*}
 $$
 
 $$
@@ -109,16 +118,18 @@ $$
 
 
 
+Let's calculate them now!
+
 $$
-\frac{\partial L}{\partial W_{xh}} = \sum_{t=1}^{T} \frac{\partial z_t^h}{\partial W_{xh}} \frac{\partial h_t}{\partial z_t^h} \frac{\partial L_t}{\partial h_t} = \sum_{t=1}^T x_t \odot 
+\frac{\partial L}{\partial W_{xh}} = \sum_{t=1}^{T} \frac{\partial z_t^h}{\partial W_{xh}} \frac{\partial h_t}{\partial z_t^h} \frac{\partial F_{t-1}}{\partial h_t} = \sum_{t=1}^T x_t \odot (1 - h_t^2)
 $$
 
 $$
-\frac{\partial L}{\partial W_{xh}} = \sum_{t=1}^{T}
+\frac{\partial L}{\partial W_{hh}} = \sum_{t=1}^{T} \frac{\partial z_t^h}{\partial W_{xh}} \frac{\partial h_t}{\partial z_t^h} \frac{\partial F_{t-1}}{\partial h_t} = \sum_{t=1}^T x_t \odot (1 - h_t^2)
 $$
 
 $$
-\frac{\partial L}{\partial b_h} = \sum_{t=1}^{T}
+\frac{\partial L}{\partial b_{h}} = \sum_{t=1}^{T} \frac{\partial z_t^h}{\partial W_{xh}} \frac{\partial h_t}{\partial z_t^h} \frac{\partial F_{t-1}}{\partial h_t} = \sum_{t=1}^T (1 - h_t^2)
 $$
 
 
