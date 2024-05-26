@@ -92,10 +92,10 @@ $$
 \frac{\partial L_t}{\partial z_t^y} = \hat{y_t} - y_t \in (1 \times l)
 $$
 
-**Useful Gradients to know**
+#### Useful Gradients to know
 $$\frac{\partial \tanh(u)}{\partial u} = 1 - \tanh(u)^2$$
 
-**Gradient of Tanh**
+#### Gradient of Tanh
 
 $$
 \frac{\partial L}{\partial W_{hy}} = \sum_{t=1}^T \frac{\partial z_t^y}{\partial W_{hy}} \frac{\partial L_t}{\partial z_t^y}^T = \sum_{t=1}^Th_t \odot (\hat{y_t} - y_t)^T \in (l \times n)
@@ -106,7 +106,7 @@ $$
 \frac{\partial L}{\partial b_y} = \sum_{t=1}^T \frac{\partial z_t^y}{\partial b_y} \frac{\partial L_t}{\partial z_t^y} = \hat{y_t} - y_t \in (1 \times l)
 $$
 
-**Gradients of 2nd Layer**
+#### Gradients of 2nd Layer
 
 Let's define some terms which will be useful. This is the most tricky layer.
 
@@ -117,14 +117,6 @@ $$F_t = \sum_{u = t + 1}^TL_u$$
 
 $$F_{t - 1} = L_t + \sum_{u = t + 1}^TL_u$$
 
-
-#### Gradient of Loss w.r.t hidden state
-$$
-\frac{\partial L_t}{\partial h_t} = \frac{\partial L_t}{\partial z_t^y}\frac{\partial z_t^y}{\partial h_t} = (\hat{y_t} - y_t)W_{hy} \in (1 \times n)
-$$
-
-
-
 #### Gradient of Future Loss w.r.t hidden state
 
 $$\begin{align*}
@@ -133,10 +125,20 @@ $$\begin{align*}
 \end{align*}$$
 
 
+#### Gradient of Loss w.r.t hidden state
+$$
+\frac{\partial L_t}{\partial h_t} = \frac{\partial L_t}{\partial z_t^y}\frac{\partial z_t^y}{\partial h_t} = (\hat{y_t} - y_t)W_{hy} \in (1 \times n)
+$$
+
+#### Gradient of hidden state w.r.t to its input before activation $z_t^h$
+
 $$\frac{\partial h_t}{\partial z_t^h} = 1 - h_t^2 \in (1 \times n)$$
 *Really this is a (n x n) diagonal matix but b/c $\frac{\partial h_t^i}{\partial z_t^j} = 0$ when $i \neq j$, I decided to grab diagonal and stuff it into a (1 x n) row vector. The reason being activation are applied element-wise.*
 
-
+#### Gradient of hidden state w.r.t previous hidden state
+$$
+\frac{\partial h_t}{\partial h_{t-1}} = \frac{\partial h_t}{\partial z_t^h} \frac{\partial z_t^h}{\partial h_{t-1}} =  (1 - h_t^2)W_{hh} \in (n \times n)
+$$
 
 
 
