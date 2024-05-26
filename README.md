@@ -71,8 +71,10 @@ After the forward pass, we'll compute the loss and gradients of the weight and b
 
 We use cross entropy loss between the predicted token probability and the target token across all time steps.
 
-$$L = \sum_{t=1}^{T}L_t(\hat{y}_t, y_t) = \sum_{t=1}^{T}{\sum_{i = 1}^{C}-y_t^i
-\log(\hat{y}_t^i)}$$
+```math
+L = \sum_{t=1}^{T}L_t(\hat{y}_t, y_t) = \sum_{t=1}^{T}{\sum_{i = 1}^{C}-y_t^i
+\log(\hat{y}_t^i)}
+```
 
 ### Backpropagation Through Time
 
