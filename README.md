@@ -57,9 +57,9 @@ $$z_t^h = x_tW_{xh}^{T} + h_{t-1}W_{hh}^{T} + b_h$$
 ``` -->
 
 ```math
-z_t^h = x_tW_{xh}^{T} + h_{t-1}W_{hh}^{T} + b_h
-h_t = \tanh(a_t)
-z_t^y = h_tW_{hy}^{T} + b_y
+z_t^h = x_tW_{xh}^{T} + h_{t-1}W_{hh}^{T} + b_h \\
+h_t = \tanh(a_t) \\
+z_t^y = h_tW_{hy}^{T} + b_y \\
 \hat{y}_t = \text{softmax}(b_t)
 ```
 
