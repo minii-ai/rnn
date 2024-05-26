@@ -133,6 +133,7 @@ $$
 = (\frac{\partial L_t}{\partial h_t} + \delta^{h_t}) \frac{\partial h_t}{\partial h_{t-1}} \in (1 \times n)
 $$
 
+Note that $\frac{\partial L_t}{\partial h_t} + \delta^{h_t} = \frac{\partial F_{t-1}}{\partial h_t}$.
 
 #### Gradient of Loss w.r.t hidden state
 $$
