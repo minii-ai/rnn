@@ -185,5 +185,10 @@ We go in the opposite direction of the gradient to minimize the loss.
 
 ## Resources
 
+- https://phillipi.github.io/6.882/2020/notes/6.036_notes.pdf
+- https://stanford.edu/~shervine/teaching/cs-230/cheatsheet-recurrent-neural-networks
+- https://karpathy.github.io/2015/05/21/rnn-effectiveness/
 - https://gist.github.com/karpathy/d4dee566867f8291f086
 - https://cs231n.github.io/neural-networks-case-study/#grad
+- https://explained.ai/matrix-calculus/
+- https://www.youtube.com/watch?v=0XdPIqi0qpg
