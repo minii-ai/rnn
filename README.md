@@ -50,18 +50,21 @@ $$h_t \in ({1 \times n})$$
 
 We have all the ingredients for the forward pass! Our choice of activation is `tanh` and `softmax`. Tanh squeezes the activations between -1 and 1 and softmax gives us output probabilities.
 
-$$
+```math
 z_t^h = x_tW_{xh}^{T} + h_{t-1}W_{hh}^{T} + b_h
-$$
-$$
+```
+
+```math
 h_t = \tanh(a_t)
-$$
-$$
+```
+
+```math
 z_t^y = h_tW_{hy}^{T} + b_y
-$$
-$$
+```
+
+```math
 \hat{y}_t = \text{softmax}(b_t)
-$$
+```
 
 ## Backward Pass
 
