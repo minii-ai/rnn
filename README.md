@@ -82,12 +82,14 @@ Source: https://phillipi.github.io/6.882/2020/notes/6.036_notes.pdf
 
 The hardest part is keeping track of matrix shapes. Do multiply the shapes of the partials to check if the shapes make sense. Don't memorize. You can derive everything from first principles just by following the RNN section of the textbook above.
 
-Hopefully you'll come to the same result! My derivation is slightly different because I use row vectors instead of column vectors (ie. $x_t \in \R^{1 \times m}$).
+Hopefully you'll come to the same result! My derivation is slightly different because I use row vectors instead of column vectors (ie. $x_t \in ({1 \times m})$).
 
-Note $\odot$ is a Hadamard product, it is multiplication applied element-wise. It is also broadcastable so a product between $(1 \times m)$ and $(n \times 1)$ is $(n \times m)$. 
+Note $\odot$ is a Hadamard product, it is multiplication applied element-wise. It is also broadcastable so a product between $(1 \times m)$ vector and $(n \times 1)$ vector is $(n \times m)$ matrix. 
 
+
+#### Gradient of Loss w.r.t $z_t^y$
 $$
-\frac{\partial L_t}{\partial b_t} = \hat{y_t} - y_t \in (1 \times l)
+\frac{\partial L_t}{\partial z_t^y} = \hat{y_t} - y_t \in (1 \times l)
 $$
 
 **Useful Gradients to know**
@@ -109,10 +111,21 @@ $$
 Let's define some terms which will be useful. This is the most tricky layer.
 
 
-$F_t = \sum_{u = t + 1}^TL_u$
 
-$F_{t - 1} = L_t + \sum_{u = t + 1}^TL_u$
+#### Definitions
+$$F_t = \sum_{u = t + 1}^TL_u$$
 
+$$F_{t - 1} = L_t + \sum_{u = t + 1}^TL_u$$
+
+
+#### Gradient of Loss w.r.t hidden state
+$$
+\frac{\partial L_t}{\partial h_t} = \frac{\partial L_t}{\partial z_t^y}\frac{\partial z_t^y}{\partial h_t} = (\hat{y_t} - y_t)W_{hy} \in (1 \times n)
+$$
+
+
+
+#### Gradient of Future Loss w.r.t hidden state
 
 $$\begin{align*}
 \delta^{h_{t-1}} &= \frac{\partial F_{t-1}}{\partial h_{t-1}} \\ &= \frac{\partial}{\partial h_{t-1}} {\sum_{u = t}^TL_u} \\ &= \frac{\partial h_t}{\partial h_{t-1}}\frac{\partial}{\partial h_t} {\sum_{u = t}^TL_u} \\ &= \frac{\partial h_t}{\partial h_{t-1}} (\frac{\partial L_t}{\partial h_t} + \frac{\partial}{\partial h_t}\sum_{u = t + 1}^TL_u) \\ &= \frac{\partial h_t}{\partial h_{t-1}} (\frac{\partial L_t}{\partial h_t} + \delta^{h_t})
