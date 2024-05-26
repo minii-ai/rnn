@@ -51,6 +51,11 @@ $$h_t \in \R^{1 \times n}$$
 We have all the ingredients for the forward pass! Our choice of activation is `tanh` and `softmax`. Tanh squeezes the activations between -1 and 1 and softmax gives us output probabilities.
 
 $$z_t^h = x_tW_{xh}^{T} + h_{t-1}W_{hh}^{T} + b_h$$
+
+```math
+\left( \sum_{k=1}^n a_k b_k \right)^2 \leq \left( \sum_{k=1}^n a_k^2 \right) \left( \sum_{k=1}^n b_k^2 \right)
+```
+
 $$h_t = \tanh(a_t) $$
 $$z_t^y = h_tW_{hy}^{T} + b_y $$
 $$\hat{y}_t = \text{softmax}(b_t)$$
@@ -99,22 +104,21 @@ $$
 Let's define some terms which will be useful. This is the most tricky layer.
 
 
-$$
-F_t = \sum_{u = t + 1}^TL_u
-$$
+$F_t = \sum_{u = t + 1}^TL_u$
+
+$F_{t - 1} = L_t + \sum_{u = t + 1}^TL_u$
 
 
-$$
-\begin{align*}
+$$\begin{align*}
 \delta^{h_{t-1}} &= \frac{\partial F_{t-1}}{\partial h_{t-1}} \\ &= \frac{\partial}{\partial h_{t-1}} {\sum_{u = t}^TL_u} \\ &= \frac{\partial h_t}{\partial h_{t-1}}\frac{\partial}{\partial h_t} {\sum_{u = t}^TL_u} \\ &= \frac{\partial h_t}{\partial h_{t-1}} (\frac{\partial L_t}{\partial h_t} + \frac{\partial}{\partial h_t}\sum_{u = t + 1}^TL_u) \\ &= \frac{\partial h_t}{\partial h_{t-1}} (\frac{\partial L_t}{\partial h_t} + \delta^{h_t})
 
-\end{align*}
-$$
+\end{align*}$$
 
-$$
-\frac{\partial h_t}{\partial z_t^h} = 1 - h_t^2 \in (1 \times n)
-$$
+
+$$\frac{\partial h_t}{\partial z_t^h} = 1 - h_t^2 \in (1 \times n)$$
 *Really this is a (n x n) diagonal matix but b/c $\frac{\partial h_t^i}{\partial z_t^j} = 0$ when $i \neq j$, I decided to grab diagonal and stuff it into a (1 x n) row vector. The reason being activation are applied element-wise.*
+
+
 
 
 
