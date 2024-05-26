@@ -58,8 +58,14 @@ $$z_t^h = x_tW_{xh}^{T} + h_{t-1}W_{hh}^{T} + b_h$$
 
 ```math
 z_t^h = x_tW_{xh}^{T} + h_{t-1}W_{hh}^{T} + b_h \\
-h_t = \tanh(a_t) \\
+```
+```math
+h_t = \tanh(a_t)
+```
+```math
 z_t^y = h_tW_{hy}^{T} + b_y \\
+```
+```math
 \hat{y}_t = \text{softmax}(b_t)
 ```
 
