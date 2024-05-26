@@ -126,7 +126,11 @@ $$F_{t - 1} = L_t + \sum_{u = t + 1}^TL_u$$
 #### Gradient of Future Loss w.r.t hidden state
 
 $$
-\delta^{h_{t-1}} = \frac{\partial F_{t-1}}{\partial h_{t-1}} = \frac{\partial}{\partial h_{t-1}} {\sum_{u = t}^TL_u} = \frac{\partial h_t}{\partial h_{t-1}}\frac{\partial}{\partial h_t} {\sum_{u = t}^TL_u} = \frac{\partial h_t}{\partial h_{t-1}} (\frac{\partial L_t}{\partial h_t} + \frac{\partial}{\partial h_t}\sum_{u = t + 1}^TL_u) = \frac{\partial h_t}{\partial h_{t-1}} (\frac{\partial L_t}{\partial h_t} + \delta^{h_t})
+\delta^{h_{t-1}} = \frac{\partial F_{t-1}}{\partial h_{t-1}} 
+= \frac{\partial}{\partial h_{t-1}} {\sum_{u = t}^TL_u} 
+= \frac{\partial}{\partial h_t} {\sum_{u = t}^TL_u} \frac{\partial h_t}{\partial h_{t-1}}
+= (\frac{\partial L_t}{\partial h_t} + \frac{\partial}{\partial h_t}\sum_{u = t + 1}^TL_u) \frac{\partial h_t}{\partial h_{t-1}}
+= (\frac{\partial L_t}{\partial h_t} + \delta^{h_t}) \frac{\partial h_t}{\partial h_{t-1}} \in (1 \times n)
 $$
 
 
