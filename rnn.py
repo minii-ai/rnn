@@ -97,7 +97,7 @@ class RNN:
             dby += dzy
 
             # 1st layer
-            dLdh = dzy @ self.Why
+            dLdh = dzy @ self.Why  # gradient of loss at L_t w.r.t hidden state h_t
             dhdzh = 1 - h[t] ** 2  # gradient thr. tanh activation
 
         gradients = ()
