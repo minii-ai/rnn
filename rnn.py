@@ -60,24 +60,11 @@ class RNN:
 
     def sample(self, char: str, n: int):
         """Generates samples starting with `char` for `n` iterations"""
-        assert len(char) == 1 and char in self.char_to_idx
-        x = np.zeros((1, self.vocab_size))
-        x[:, self.char_to_idx[char]] = 1  # create one hot encoding for char
-        h = np.zeros((1, self.hidden_size))  # initialize hidden state to all 0s
-        idxes = []
+        sample = ""
+        for char in self.sample_progressive(char, n):
+            sample += char
 
-        for _ in range(n):
-            probs, h = self(x, h)
-            idx = np.random.choice(
-                self.vocab_size, p=probs.ravel()
-            )  # sample token idx from output
-
-            x = np.zeros((1, self.vocab_size))
-            x[:, idx] = 1  # one hot encoding for sampled token
-            idxes.append(idx)
-
-        sample = "".join([self.idx_to_char[idx] for idx in idxes])
-        return char + sample
+        return sample
 
     def sample_progressive(self, c: str, n: int):
         """Generate one char at a time, starting with `c` for `n` iterations"""
