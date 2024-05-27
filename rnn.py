@@ -1,4 +1,5 @@
 import numpy as np
+import pickle
 
 
 def softmax(z):
@@ -22,21 +23,20 @@ class RNN:
             - hidden_size: hidden state dim
             - vocab: string of unique chars
         """
-        vocab_size = len(vocab)
-
         self.hidden_size = hidden_size
+        self.vocab = vocab
+        self.vocab_size = len(vocab)
         self.char_to_idx = {char: i for i, char in enumerate(vocab)}
         self.idx_to_char = {i: char for i, char in enumerate(vocab)}
-        self.vocab_size = vocab_size
 
         # weights
-        self.Wxh = np.random.randn(hidden_size, vocab_size)
+        self.Wxh = np.random.randn(hidden_size, self.vocab_size)
         self.Whh = np.random.randn(hidden_size, hidden_size)
-        self.Why = np.random.randn(vocab_size, hidden_size)
+        self.Why = np.random.randn(self.vocab_size, hidden_size)
 
         # biases
         self.bh = np.random.randn(1, hidden_size)
-        self.by = np.random.randn(1, vocab_size)
+        self.by = np.random.randn(1, self.vocab_size)
 
         self.weights = (self.Wxh, self.Whh, self.Why, self.bh, self.by)
 
@@ -135,4 +135,15 @@ class RNN:
 
     def save(self, path: str):
         """Save the weights and vocab as a pickle file"""
-        pass
+        data = {
+            "hidden_size": self.hidden_size,
+            "vocab": self.vocab,
+            "Wxh": self.Wxh,
+            "Whh": self.Whh,
+            "Why": self.Why,
+            "bh": self.bh,
+            "by": self.by,
+        }
+
+        with open(path, "wb") as f:
+            pickle.dump(data, f)

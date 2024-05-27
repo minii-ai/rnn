@@ -11,7 +11,7 @@ def parse_args():
     parser.add_argument("--iters", "-i", type=int, default=1000)
     parser.add_argument("--lr", type=float, default=1e-2)
     parser.add_argument("--seq_length", "-s", type=int, default=25)
-    parser.add_argument("--save_path", "-sp", default="./weights.pickle")
+    parser.add_argument("--save_path", "-sp", required=True)
 
     return parser.parse_args()
 
@@ -94,6 +94,8 @@ def main(args):
     train_loop(
         rnn=rnn, data=data, iters=args.iters, lr=args.lr, seq_length=args.seq_length
     )
+
+    rnn.save(args.save_path)
 
 
 if __name__ == "__main__":
