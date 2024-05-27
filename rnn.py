@@ -38,6 +38,8 @@ class RNN:
         self.bh = np.random.randn(1, hidden_size)
         self.by = np.random.randn(1, vocab_size)
 
+        self.weights = (self.Wxh, self.Whh, self.Why, self.bh, self.by)
+
     def __call__(self, x, h) -> np.ndarray:
         """Sample from RNN(x_t, h_{t-1}) -> y_t, h_t"""
         assert x.shape == (1, self.vocab_size) and h.shape == (1, self.hidden_size)
@@ -51,15 +53,30 @@ class RNN:
     def sample(self, char: str, n: int):
         """Generates samples starting with `char` for `n` iterations"""
         assert len(char) == 1 and char in self.char_to_idx
-        x = np.zeros((1, self.hidden_size))
+        x = np.zeros((1, self.vocab_size))
         x[:, self.char_to_idx[char]] = 1  # create one hot encoding for char
         h = np.zeros((1, self.hidden_size))  # initialize hidden state to all 0s
+        idxes = []
+
+        for _ in range(n):
+            probs, h = self(x, h)
+            idx = np.random.choice(
+                self.vocab_size, p=probs.ravel()
+            )  # sample token idx from output
+
+            x = np.zeros((1, self.vocab_size))
+            x[:, idx] = 1  # one hot encoding for sampled token
+            idxes.append(idx)
+
+        sample = "".join([self.idx_to_char[idx] for idx in idxes])
+        return char + sample
 
     def loss(self, inputs: str, targets: str, hprev=None):
         """
-        Computes loss between input and target chars
+        Computes loss between input and target chars and returns
+        the loss, gradients (dWxh, dWhh, dWhy, dbh, dby), and final hidden state
         """
-        hprev = np.copy(hprev) or np.zeros((1, self.hidden_size))
+        hprev = np.zeros((1, self.hidden_size)) if hprev is not None else np.copy(hprev)
         xs, hs, ps = {}, {}, {}  # keep track of x, hidden states, and output probs
         hs[-1] = hprev  # store initial hidden state
         loss = 0
@@ -90,7 +107,7 @@ class RNN:
 
         # backprop thr. time
         for t in reversed(range(len(inputs))):
-            dzy = np.copy(ps[t])  # loss w.r.t zy
+            dzy = np.copy(ps[t])  # loss at t w.r.t zy
             dzy[:, self.char_to_idx[targets[t]]] -= 1
 
             # 2nd layer
@@ -99,8 +116,8 @@ class RNN:
 
             # intermediate gradients
             dLdh = dzy @ self.Why  # gradient of loss at L_t w.r.t hidden state h_t
-            dhdzh = 1 - h[t] ** 2  # gradient thr. tanh activation
-            dhdhprev = dhdzh @ self.Whh  # gradient of hidden state h_t w.r.t h_{t-1}
+            dhdzh = 1 - hs[t] ** 2  # gradient thr. tanh activation
+            dhdhprev = dhdzh * self.Whh  # gradient of hidden state h_t w.r.t h_{t-1}
             dFprevdh = dLdh + dFdh  # gradient of F_{t-1} w.r.t h_t
 
             # 1st layer
@@ -109,15 +126,12 @@ class RNN:
             dbh += dhdzh * dFprevdh
 
             # update dFdh for next timestep t-1
-            dFdh = dFprevdh * dhdhprev
+            dFdh = dFprevdh @ dhdhprev
 
-            print(dhdhprev)
+        gradients = (dWxh, dWhh, dWhy, dbh, dby)  # collect gradients
+        hnext = hs[len(inputs) - 1]
 
-            raise RuntimeError
-
-        gradients = ()
-
-        return loss
+        return loss, gradients, hnext
 
     def save(self, path: str):
         """Save the weights and vocab as a pickle file"""
