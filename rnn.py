@@ -38,9 +38,9 @@ class RNN:
         self.idx_to_char = {i: char for i, char in enumerate(vocab)}
 
         # weights
-        self.Wxh = np.random.randn(hidden_size, self.vocab_size)
-        self.Whh = np.random.randn(hidden_size, hidden_size)
-        self.Why = np.random.randn(self.vocab_size, hidden_size)
+        self.Wxh = np.random.randn(hidden_size, self.vocab_size) * 0.01
+        self.Whh = np.random.randn(hidden_size, hidden_size) * 0.01
+        self.Why = np.random.randn(self.vocab_size, hidden_size) * 0.01
 
         # biases
         self.bh = np.random.randn(1, hidden_size)
@@ -126,26 +126,32 @@ class RNN:
             dzy = np.copy(ps[t])  # loss at t w.r.t zy
             dzy[:, self.char_to_idx[targets[t]]] -= 1
 
+            # print(dzy)
+
             # 2nd layer
+            # raise RuntimeError
             dWhy += hs[t] * dzy.T
-            dby += dzy
+
+            # dby += dzy
 
             # intermediate gradients
-            dLdh = dzy @ self.Why  # gradient of loss at L_t w.r.t hidden state h_t
-            dhdzh = 1 - hs[t] ** 2  # gradient thr. tanh activation
-            dhdhprev = dhdzh * self.Whh  # gradient of hidden state h_t w.r.t h_{t-1}
-            dFprevdh = dLdh + dFdh  # gradient of F_{t-1} w.r.t h_t
+            # dLdh = dzy @ self.Why  # gradient of loss at L_t w.r.t hidden state h_t
+            # dhdzh = 1 - hs[t] ** 2  # gradient thr. tanh activation
+            # dhdhprev = dhdzh * self.Whh  # gradient of hidden state h_t w.r.t h_{t-1}
+            # dFprevdh = dLdh + dFdh  # gradient of F_{t-1} w.r.t h_t
 
-            # 1st layer
-            dWxh += xs[t] * dhdzh.T * dFprevdh.T
-            dWhh += hs[t - 1] * dhdzh.T * dFprevdh.T
-            dbh += dhdzh * dFprevdh
+            # # 1st layer
+            # dWxh += xs[t] * dhdzh.T * dFprevdh.T
+            # dWhh += hs[t - 1] * dhdzh.T * dFprevdh.T
+            # dbh += dhdzh * dFprevdh
 
             # update dFdh for next timestep t-1
-            dFdh = dFprevdh @ dhdhprev
+            # dFdh = dFprevdh @ dhdhprev
 
         gradients = (dWxh, dWhh, dWhy, dbh, dby)  # collect gradients
         hnext = hs[len(inputs) - 1]
+
+        # print(dby)
 
         return loss, gradients, hnext
 

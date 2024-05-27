@@ -42,7 +42,7 @@ def clip_gradients(gradients):
 
 def step(weights: np.ndarray, gradients: np.ndarray, lr: float):
     for weight, gradient in zip(weights, gradients):
-        weight -= lr * gradient  # go in the opposite direction of the gradient
+        weight += -lr * gradient  # go in the opposite direction of the gradient
 
 
 def train_loop(
@@ -79,14 +79,26 @@ def train_loop(
             clip_gradients(gradients)  # gradient clipping for training stability
             step(rnn.weights, gradients, lr)  # gradient descent
 
-            if (iter + 1) % val_steps == 0:
+            # print(gradients[2])
+
+            print(loss)
+            import time
+
+            # time.sleep(0.5)
+            # raise RuntimeError
+
+            # raise RuntimeError
+
+            if (iter + 1) % val_steps == 0:  # validation step
                 tqdm.write(f"== Iter {iter} ==")
                 tqdm.write(f"loss = {loss}")
                 sample = rnn.sample(val_c, val_n)
                 tqdm.write(sample)
 
-            pbar.set_postfix(loss=loss)
-            pbar.update(1)
+            i += seq_length  # move to next batch
+
+            # pbar.set_postfix(loss=loss)
+            # pbar.update(1)
 
     print(f"[INFO] Final Loss = {loss}")
     print("[INFO] Sample")
@@ -96,8 +108,11 @@ def train_loop(
 
 def main(args):
     np.random.seed(0)
-    # data = read_file(args.data)  # read data from txt file
-    data = "hello world"
+    data = read_file(args.data)  # read data from txt file
+    # data = data[:250]
+    # data = data[:100]
+    # data = data[:50]
+    data = data[:25]
     vocab = build_vocab(data)  # build vocab of unique chars
     rnn = RNN(hidden_size=args.hidden_size, vocab=vocab)  # init rnn
 
