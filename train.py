@@ -1,12 +1,15 @@
 import argparse
 import numpy as np
 from rnn import RNN
+from tqdm import tqdm
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", type=str, default="./data/howtogetrich.txt")
-    parser.add_argument("--hidden_size", type=int, default=64)
+    parser.add_argument("--data", "-d", type=str, default="./data/howtogetrich.txt")
+    parser.add_argument("--hidden_size", "-hs", type=int, default=64)
+    parser.add_argument("--iters", "-i", type=int, default=100)
+    parser.add_argument("--seq_length", "-s", type=int, default=25)
 
     return parser.parse_args()
 
@@ -39,6 +42,9 @@ def main(args):
     data = read_file(args.data)  # read data from txt file
     vocab = build_vocab(data)  # build vocab of unique chars
     rnn = RNN(hidden_size=args.hidden_size, vocab=vocab)  # init rnn
+
+    with tqdm(total=args.iters) as pbar:
+        pass
 
 
 if __name__ == "__main__":

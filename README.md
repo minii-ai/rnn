@@ -143,7 +143,7 @@ $$
 #### Gradient of hidden state w.r.t to its input before activation $z_t^h$
 
 $$\frac{\partial h_t}{\partial z_t^h} = 1 - h_t^2 \in (1 \times n)$$
-*Really this is a (n x n) diagonal matix but b/c $\frac{\partial h_t^i}{\partial z_t^j} = 0$ when $i \neq j$, I decided to grab diagonal and stuff it into a (1 x n) row vector. The reason being activation are applied element-wise.*
+Really this is a $(n \times n)$ diagonal matix but b/c $\frac{\partial h_t^i}{\partial z_t^j} = 0$ when $i \neq j$, I decided to grab diagonal and stuff it into a $(1 \times n)$ row vector. The reason being activation are applied element-wise.
 
 #### Gradient of hidden state w.r.t previous hidden state
 $$
