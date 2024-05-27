@@ -7,7 +7,7 @@ import numpy as np
 
 # data I/O
 data = open("./data/howtogetrich.txt", "r").read()[
-    :1000
+    :10000
 ]  # should be simple plain text file
 chars = list(set(data))
 data_size, vocab_size = len(data), len(chars)

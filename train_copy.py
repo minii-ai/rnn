@@ -90,8 +90,11 @@ def train_loop(
             # param += -lr * dparam  # adagrad update
             param += -lr * dparam / np.sqrt(mem + 1e-8)  # adagrad update
 
-        if n % 100 == 0:
+        if n % 1000 == 0:
             print("iter %d, loss: %f" % (n, loss))  # print progress
+            # sample = rnn.sample(val_c, val_n)
+            sample = rnn.sample("S", val_n)
+            print(sample)
 
         p += seq_length  # move data pointer
         n += 1  # iteration counter
@@ -117,7 +120,7 @@ def main(args):
     np.random.seed(0)
     data = read_file(args.data)  # read data from txt file
     # data = data[:250]
-    data = data[:1000]
+    data = data[:10000]
     # data = data[:50]
     # data = data[:25]
     vocab = build_vocab(data)  # build vocab of unique chars

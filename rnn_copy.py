@@ -139,31 +139,37 @@ class RNN:
             dWhh += np.dot(dhraw.T, hs[t - 1])
             dhnext = np.dot(dhraw, self.Whh)
 
-        for dparam in [dWxh, dWhh, dWhy, dbh, dby]:
-            np.clip(dparam, -5, 5, out=dparam)
-
         # for t in reversed(range(len(inputs))):
         #     dzy = np.copy(ps[t])  # loss at t w.r.t zy
         #     dzy[0, targets[t]] -= 1
 
         #     # 2nd layer
-        #     # dWhy += hs[t] * dzy.T
         #     dWhy += np.dot(dzy.T, hs[t])
         #     dby += dzy
 
-        # intermediate gradients
-        # dLdh = dzy @ self.Why  # gradient of loss at L_t w.r.t hidden state h_t
-        # dhdzh = 1 - hs[t] ** 2  # gradient thr. tanh activation
-        # dhdhprev = dhdzh * self.Whh  # gradient of hidden state h_t w.r.t h_{t-1}
-        # dFprevdh = dLdh + dFdh  # gradient of F_{t-1} w.r.t h_t
+        #     # intermediate gradients
+        #     dLdh = dzy @ self.Why  # gradient of loss at L_t w.r.t hidden state h_t
+        #     dFprevdh = dLdh + dFdh  # gradient of F_{t-1} w.r.t h_t
+        #     dhraw = (1 - hs[t] ** 2) * dFprevdh  # gradient thr. tanh activation
+        #     #     dhdzh = 1 - hs[t] ** 2  # gradient thr. tanh activation
+        #     #     dhdhprev = dhdzh * self.Whh  # gradient of hidden state h_t w.r.t h_{t-1}
 
-        # # 1st layer
-        # dWxh += xs[t] * dhdzh.T * dFprevdh.T
-        # dWhh += hs[t - 1] * dhdzh.T * dFprevdh.T
-        # dbh += dhdzh * dFprevdh
+        #     #     # 1st layer
+        #     dbh += dhraw
+        #     dWxh += np.dot(dhraw.T, xs[t])
+        #     dWhh += np.dot(dhraw.T, hs[t - 1])
+        #     dFdh = np.dot(dhraw, self.Whh)  # update dFdh for next timestep t-1
+        #     # dFdh = dFprevdh @ (1 - hs[t] ** 2).T * self.Whh
+        #     a = dFprevdh
+        #     b = (1 - hs[t] ** 2).T * self.Whh
+        #     dFdh = a @ b
+        # print(a @ b)
 
         # update dFdh for next timestep t-1
         # dFdh = dFprevdh @ dhdhprev
+
+        for dparam in [dWxh, dWhh, dWhy, dbh, dby]:
+            np.clip(dparam, -5, 5, out=dparam)
 
         gradients = (dWxh, dWhh, dWhy, dbh, dby)  # collect gradients
         hnext = hs[len(inputs) - 1]
