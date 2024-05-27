@@ -85,7 +85,7 @@ Source: https://phillipi.github.io/6.882/2020/notes/6.036_notes.pdf
 
 The hardest part is keeping track of matrix shapes. Do multiply the shapes of the partials to check if the shapes make sense. Don't memorize. You can derive everything from first principles just by following the RNN section of the textbook above.
 
-Hopefully you'll come to the same result! My derivation is slightly different because I use row vectors instead of column vectors (ie. $x_t \in ({1 \times m})$).
+Hopefully you'll come to the same result! My derivation is slightly different because I use row vectors instead of column vectors $x_t \in (1 \times m)$.
 
 Note $\odot$ is a Hadamard product, it is multiplication applied element-wise. It is also broadcastable so a product between $(1 \times m)$ vector and $(n \times 1)$ vector is $(n \times m)$ matrix. 
 
@@ -104,7 +104,7 @@ $$\frac{\partial \tanh(u)}{\partial u} = 1 - \tanh(u)^2$$
 #### Gradient of 1st Layer
 
 $$
-\frac{\partial L}{\partial W_{hy}} = \sum_{t=1}^T \frac{\partial z_t^y}{\partial W_{hy}} \frac{\partial L_t}{\partial z_t^y}^T = \sum_{t=1}^Th_t \odot (\hat{y_t} - y_t)^T \in (l \times n)
+\frac{\partial L}{\partial W_{hy}} = \sum_{t=1}^T \frac{\partial z_t^y}{\partial W_{hy}} \frac{\partial L_t}{\partial z_t^y} = \sum_{t=1}^Th_t \odot (\hat{y_t} - y_t)^T \in (l \times n)
 $$
 
 
@@ -147,7 +147,7 @@ Really this is a $(n \times n)$ diagonal matix but b/c $\frac{\partial h_t^i}{\p
 
 #### Gradient of hidden state w.r.t previous hidden state
 $$
-\frac{\partial h_t}{\partial h_{t-1}} = \frac{\partial h_t}{\partial z_t^h} \frac{\partial z_t^h}{\partial h_{t-1}} =  (1 - h_t^2)W_{hh} \in (n \times n)
+\frac{\partial h_t}{\partial h_{t-1}} = \frac{\partial h_t}{\partial z_t^h} \frac{\partial z_t^h}{\partial h_{t-1}} =  (1 - h_t^2) \odot W_{hh} \in (n \times n)
 $$
 
 

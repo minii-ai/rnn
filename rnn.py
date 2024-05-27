@@ -39,6 +39,7 @@ class RNN:
         self.by = np.random.randn(1, vocab_size)
 
     def __call__(self, x, h) -> np.ndarray:
+        """Sample from RNN(x_t, h_{t-1}) -> y_t, h_t"""
         assert x.shape == (1, self.vocab_size) and h.shape == (1, self.hidden_size)
         zh = x @ self.Wxh.T + h @ self.Whh.T + self.bh
         hnext = np.tanh(zh)
@@ -96,9 +97,23 @@ class RNN:
             dWhy += hs[t] * dzy.T
             dby += dzy
 
-            # 1st layer
+            # intermediate gradients
             dLdh = dzy @ self.Why  # gradient of loss at L_t w.r.t hidden state h_t
             dhdzh = 1 - h[t] ** 2  # gradient thr. tanh activation
+            dhdhprev = dhdzh @ self.Whh  # gradient of hidden state h_t w.r.t h_{t-1}
+            dFprevdh = dLdh + dFdh  # gradient of F_{t-1} w.r.t h_t
+
+            # 1st layer
+            dWxh += xs[t] * dhdzh.T * dFprevdh.T
+            dWhh += hs[t - 1] * dhdzh.T * dFprevdh.T
+            dbh += dhdzh * dFprevdh
+
+            # update dFdh for next timestep t-1
+            dFdh = dFprevdh * dhdhprev
+
+            print(dhdhprev)
+
+            raise RuntimeError
 
         gradients = ()
 
