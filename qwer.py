@@ -6,9 +6,7 @@ BSD License
 import numpy as np
 
 # data I/O
-data = open("./data/howtogetrich.txt", "r").read()[
-    :10000
-]  # should be simple plain text file
+data = open("./data/stevejobs.txt", "r").read()  # should be simple plain text file
 chars = list(set(data))
 data_size, vocab_size = len(data), len(chars)
 print("data has %d characters, %d unique." % (data_size, vocab_size))
@@ -103,17 +101,20 @@ while True:
     targets = [char_to_ix[ch] for ch in data[p + 1 : p + seq_length + 1]]
 
     # sample from the model now and then
-    if n % 100 == 0:
-        sample_ix = sample(hprev, inputs[0], 200)
+    if n % 1000 == 0:
+        # sample_ix = sample(hprev, inputs[0], 200)
+        # sample_ix = sample(hprev, inputs[0], 300)
+        sample_ix = sample(hprev, char_to_ix["I"], 300)
         txt = "".join(ix_to_char[ix] for ix in sample_ix)
         print("----\n %s \n----" % (txt,))
 
     # forward seq_length characters through the net and fetch gradient
     loss, dWxh, dWhh, dWhy, dbh, dby, hprev = lossFun(inputs, targets, hprev)
     smooth_loss = smooth_loss * 0.999 + loss * 0.001
-    if n % 100 == 0:
+    if n % 1000 == 0:
         # print("iter %d, loss: %f" % (n, smooth_loss))  # print progress
         print("iter %d, loss: %f" % (n, smooth_loss))  # print progress
+        # print("iter %d, loss: %f" % (n, loss))  # print progress
 
     # perform parameter update with Adagrad
     for param, dparam, mem in zip(

@@ -2,9 +2,9 @@ import numpy as np
 import pickle
 
 
-def softmax(z):
-    e_z = np.exp(z)
-    return e_z / e_z.sum(axis=1)
+def softmax(z, temperature=1.0):
+    e_z = np.exp(z / temperature)
+    return e_z / e_z.sum()
 
 
 class RNN:
@@ -48,25 +48,25 @@ class RNN:
 
         self.weights = (self.Wxh, self.Whh, self.Why, self.bh, self.by)
 
-    def __call__(self, x, h) -> np.ndarray:
+    def __call__(self, x, h, t=1.0) -> np.ndarray:
         """Sample from RNN(x_t, h_{t-1}) -> y_t, h_t"""
         assert x.shape == (1, self.vocab_size) and h.shape == (1, self.hidden_size)
         zh = x @ self.Wxh.T + h @ self.Whh.T + self.bh
         hnext = np.tanh(zh)
         zy = hnext @ self.Why.T + self.by
-        y = softmax(zy)
+        y = softmax(zy, t)
 
         return y, hnext
 
-    def sample(self, char: str, n: int):
+    def sample(self, char: str, n: int, t=1.0):
         """Generates samples starting with `char` for `n` iterations"""
         sample = ""
-        for char in self.sample_progressive(char, n):
+        for char in self.sample_progressive(char, n, t):
             sample += char
 
         return sample
 
-    def sample_progressive(self, c: str, n: int):
+    def sample_progressive(self, c: str, n: int, t=1.0):
         """Generate one char at a time, starting with `c` for `n` iterations"""
         assert len(c) == 1 and c in self.char_to_idx
         x = np.zeros((1, self.vocab_size))
@@ -76,7 +76,7 @@ class RNN:
         yield c
 
         for _ in range(n):
-            probs, h = self(x, h)
+            probs, h = self(x, h, t)
             idx = np.random.choice(
                 self.vocab_size, p=probs.ravel()
             )  # sample token idx from output
@@ -124,52 +124,52 @@ class RNN:
         dFdh = np.zeros((1, self.hidden_size))
 
         # backprop thr. time
-        dhnext = np.zeros_like(hs[0])
-        for t in reversed(range(len(inputs))):
-            dy = np.copy(ps[t])
-            dy[
-                0, targets[t]
-            ] -= 1  # backprop into y. see http://cs231n.github.io/neural-networks-case-study/#grad if confused here
-            dWhy += np.dot(dy.T, hs[t])
-            dby += dy
-            dh = np.dot(dy, self.Why) + dhnext  # backprop into h
-            dhraw = (1 - hs[t] * hs[t]) * dh  # backprop through tanh nonlinearity
-            dbh += dhraw
-            dWxh += np.dot(dhraw.T, xs[t])
-            dWhh += np.dot(dhraw.T, hs[t - 1])
-            dhnext = np.dot(dhraw, self.Whh)
-
+        # dhnext = np.zeros_like(hs[0])
         # for t in reversed(range(len(inputs))):
-        #     dzy = np.copy(ps[t])  # loss at t w.r.t zy
-        #     dzy[0, targets[t]] -= 1
-
-        #     # 2nd layer
-        #     dWhy += np.dot(dzy.T, hs[t])
-        #     dby += dzy
-
-        #     # intermediate gradients
-        #     dLdh = dzy @ self.Why  # gradient of loss at L_t w.r.t hidden state h_t
-        #     dFprevdh = dLdh + dFdh  # gradient of F_{t-1} w.r.t h_t
-        #     dhraw = (1 - hs[t] ** 2) * dFprevdh  # gradient thr. tanh activation
-        #     #     dhdzh = 1 - hs[t] ** 2  # gradient thr. tanh activation
-        #     #     dhdhprev = dhdzh * self.Whh  # gradient of hidden state h_t w.r.t h_{t-1}
-
-        #     #     # 1st layer
+        #     dy = np.copy(ps[t])
+        #     dy[
+        #         0, targets[t]
+        #     ] -= 1  # backprop into y. see http://cs231n.github.io/neural-networks-case-study/#grad if confused here
+        #     dWhy += np.dot(dy.T, hs[t])
+        #     dby += dy
+        #     dh = np.dot(dy, self.Why) + dhnext  # backprop into h
+        #     dhraw = (1 - hs[t] * hs[t]) * dh  # backprop through tanh nonlinearity
         #     dbh += dhraw
         #     dWxh += np.dot(dhraw.T, xs[t])
         #     dWhh += np.dot(dhraw.T, hs[t - 1])
-        #     dFdh = np.dot(dhraw, self.Whh)  # update dFdh for next timestep t-1
-        #     # dFdh = dFprevdh @ (1 - hs[t] ** 2).T * self.Whh
-        #     a = dFprevdh
-        #     b = (1 - hs[t] ** 2).T * self.Whh
-        #     dFdh = a @ b
+        #     dhnext = np.dot(dhraw, self.Whh)
+
+        for t in reversed(range(len(inputs))):
+            dzy = np.copy(ps[t])  # loss at t w.r.t zy
+            dzy[0, targets[t]] -= 1
+
+            # 2nd layer
+            dWhy += np.dot(dzy.T, hs[t])
+            dby += dzy
+
+            # intermediate gradients
+            dLdh = dzy @ self.Why  # gradient of loss at L_t w.r.t hidden state h_t
+            dFprevdh = dLdh + dFdh  # gradient of F_{t-1} w.r.t h_t
+            dhraw = (1 - hs[t] ** 2) * dFprevdh  # gradient thr. tanh activation
+            #     dhdzh = 1 - hs[t] ** 2  # gradient thr. tanh activation
+            #     dhdhprev = dhdzh * self.Whh  # gradient of hidden state h_t w.r.t h_{t-1}
+
+            #     # 1st layer
+            dbh += dhraw
+            dWxh += np.dot(dhraw.T, xs[t])
+            dWhh += np.dot(dhraw.T, hs[t - 1])
+            # dFdh = np.dot(dhraw, self.Whh)  # update dFdh for next timestep t-1
+            # dFdh = dFprevdh @ (1 - hs[t] ** 2).T * self.Whh
+            a = dFprevdh
+            b = (1 - hs[t] ** 2).T * self.Whh
+            dFdh = a @ b
         # print(a @ b)
 
         # update dFdh for next timestep t-1
         # dFdh = dFprevdh @ dhdhprev
 
         for dparam in [dWxh, dWhh, dWhy, dbh, dby]:
-            np.clip(dparam, -5, 5, out=dparam)
+            np.clip(dparam, -1, 1, out=dparam)
 
         gradients = (dWxh, dWhh, dWhy, dbh, dby)  # collect gradients
         hnext = hs[len(inputs) - 1]

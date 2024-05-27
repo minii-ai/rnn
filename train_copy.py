@@ -69,6 +69,7 @@ def train_loop(
         np.zeros_like(rnn.Why),
     )
     mbh, mby = np.zeros_like(rnn.bh), np.zeros_like(rnn.by)
+    smooth_loss = -np.log(1.0 / rnn.vocab_size) * seq_length  # loss at iteration 0
     while True:
         if p + seq_length + 1 >= len(data) or n == 0:
             hprev = np.zeros((1, rnn.hidden_size))  # reset RNN memory
@@ -90,11 +91,14 @@ def train_loop(
             # param += -lr * dparam  # adagrad update
             param += -lr * dparam / np.sqrt(mem + 1e-8)  # adagrad update
 
+        smooth_loss = smooth_loss * 0.999 + loss * 0.001
         if n % 1000 == 0:
-            print("iter %d, loss: %f" % (n, loss))  # print progress
+            print("---")
+            print("iter %d, loss: %f" % (n, smooth_loss))  # print progress
             # sample = rnn.sample(val_c, val_n)
-            sample = rnn.sample("S", val_n)
+            sample = rnn.sample("I", 300, 0.2)
             print(sample)
+            print("---")
 
         p += seq_length  # move data pointer
         n += 1  # iteration counter
@@ -120,7 +124,8 @@ def main(args):
     np.random.seed(0)
     data = read_file(args.data)  # read data from txt file
     # data = data[:250]
-    data = data[:10000]
+    # data = data[:10000]
+    # data = "hello world"
     # data = data[:50]
     # data = data[:25]
     vocab = build_vocab(data)  # build vocab of unique chars
@@ -132,6 +137,7 @@ def main(args):
         iters=args.iters,
         lr=args.lr,
         seq_length=args.seq_length,
+        # seq_length=10,
         val_n=args.val_n,
         val_steps=args.val_steps,
         val_c=args.val_c,
