@@ -122,6 +122,7 @@ while True:
         [mWxh, mWhh, mWhy, mbh, mby],
     ):
         mem += dparam * dparam
+        # param += -learning_rate * dparam  # adagrad update
         param += -learning_rate * dparam / np.sqrt(mem + 1e-8)  # adagrad update
 
     p += seq_length  # move data pointer
