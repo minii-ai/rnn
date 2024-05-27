@@ -169,7 +169,7 @@ $$
 $$
 
 $$
-\frac{\partial L}{\partial W_{xh}} = \sum_{t=1}^{T} \frac{\partial z_t^h}{\partial W_{xh}} \frac{\partial h_t}{\partial z_t^h} \frac{\partial F_{t-1}}{\partial h_t} = \sum_{t=1}^T h_t \odot (1 - h_t^2) ^T  \odot (\frac{\partial F_{t-1}}{\partial h_t})^T
+\frac{\partial L}{\partial W_{xh}} = \sum_{t=1}^{T} \frac{\partial z_t^h}{\partial W_{xh}} \frac{\partial h_t}{\partial z_t^h} \frac{\partial F_{t-1}}{\partial h_t} = \sum_{t=1}^T h_{t-1} \odot (1 - h_t^2) ^T  \odot (\frac{\partial F_{t-1}}{\partial h_t})^T
 $$
 
 

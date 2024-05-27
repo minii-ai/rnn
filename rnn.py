@@ -82,9 +82,9 @@ class RNN:
             np.zeros_like(self.Whh),
             np.zeros_like(self.Why),
         )
-        dbh, bhy = np.zeros_like(self.bh), np.zeros_like(self.by)
+        dbh, dby = np.zeros_like(self.bh), np.zeros_like(self.by)
 
-        # gradient of F_t (future loss) w.r.t. h_t
+        # gradient of F_t (future loss L_t+1 ... L_T) w.r.t. h_t
         dFdh = np.zeros((1, self.hidden_size))
 
         # backprop thr. time
@@ -92,10 +92,13 @@ class RNN:
             dzy = np.copy(ps[t])  # loss w.r.t zy
             dzy[:, self.char_to_idx[targets[t]]] -= 1
 
-            # 1st layer
-            dWhy += hs[t] * dzy.T
-
             # 2nd layer
+            dWhy += hs[t] * dzy.T
+            dby += dzy
+
+            # 1st layer
+            dLdh = dzy @ self.Why
+            dhdzh = 1 - h[t] ** 2  # gradient thr. tanh activation
 
         gradients = ()
 
