@@ -5,11 +5,9 @@ BSD License
 
 import numpy as np
 
-np.random.seed(0)
-
 # data I/O
 data = open("./data/howtogetrich.txt", "r").read()[
-    :25
+    :1000
 ]  # should be simple plain text file
 chars = list(set(data))
 data_size, vocab_size = len(data), len(chars)
@@ -19,7 +17,7 @@ ix_to_char = {i: ch for i, ch in enumerate(chars)}
 
 # hyperparameters
 hidden_size = 100  # size of hidden layer of neurons
-seq_length = 24  # number of steps to unroll the RNN for
+seq_length = 25  # number of steps to unroll the RNN for
 learning_rate = 1e-1
 
 # model parameters
@@ -59,16 +57,13 @@ def lossFun(inputs, targets, hprev):
             targets[t]
         ] -= 1  # backprop into y. see http://cs231n.github.io/neural-networks-case-study/#grad if confused here
         dWhy += np.dot(dy, hs[t].T)
-        # dby += dy
-
-        # dh = np.dot(Why.T, dy) + dhnext  # backprop into h
-        # dhraw = (1 - hs[t] * hs[t]) * dh  # backprop through tanh nonlinearity
-        # dbh += dhraw
-        # dWxh += np.dot(dhraw, xs[t].T)
-        # dWhh += np.dot(dhraw, hs[t - 1].T)
-        # dhnext = np.dot(Whh.T, dhraw)
-
-    # print(dby)
+        dby += dy
+        dh = np.dot(Why.T, dy) + dhnext  # backprop into h
+        dhraw = (1 - hs[t] * hs[t]) * dh  # backprop through tanh nonlinearity
+        dbh += dhraw
+        dWxh += np.dot(dhraw, xs[t].T)
+        dWhh += np.dot(dhraw, hs[t - 1].T)
+        dhnext = np.dot(Whh.T, dhraw)
     for dparam in [dWxh, dWhh, dWhy, dbh, dby]:
         np.clip(dparam, -5, 5, out=dparam)  # clip to mitigate exploding gradients
     return loss, dWxh, dWhh, dWhy, dbh, dby, hs[len(inputs) - 1]
@@ -107,7 +102,6 @@ while True:
 
     # sample from the model now and then
     if n % 100 == 0:
-        # sample_ix = sample(hprev, inputs[0], 200)
         sample_ix = sample(hprev, inputs[0], 200)
         txt = "".join(ix_to_char[ix] for ix in sample_ix)
         print("----\n %s \n----" % (txt,))
@@ -118,19 +112,14 @@ while True:
     if n % 100 == 0:
         print("iter %d, loss: %f" % (n, smooth_loss))  # print progress
 
-    print(loss)
-
-    # raise RuntimeError
-
     # perform parameter update with Adagrad
     for param, dparam, mem in zip(
         [Wxh, Whh, Why, bh, by],
         [dWxh, dWhh, dWhy, dbh, dby],
         [mWxh, mWhh, mWhy, mbh, mby],
     ):
-        # mem += dparam * dparam
-        # param += -learning_rate * dparam / np.sqrt(mem + 1e-8)  # adagrad update
-        param += -learning_rate * dparam
+        mem += dparam * dparam
+        param += -learning_rate * dparam / np.sqrt(mem + 1e-8)  # adagrad update
 
     p += seq_length  # move data pointer
     n += 1  # iteration counter
