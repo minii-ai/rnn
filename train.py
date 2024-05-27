@@ -12,6 +12,9 @@ def parse_args():
     parser.add_argument("--lr", type=float, default=1e-2)
     parser.add_argument("--seq_length", "-s", type=int, default=25)
     parser.add_argument("--save_path", "-sp", required=True)
+    parser.add_argument("--val_n", "-vn", type=int, default=50)
+    parser.add_argument("--val_steps", "-vs", type=int, default=100)
+    parser.add_argument("--val_c", "-vc", type=str, default="h")
 
     return parser.parse_args()
 
@@ -48,6 +51,9 @@ def train_loop(
     iters: int,
     lr: float,
     seq_length: int,
+    val_n: int,
+    val_steps: int,
+    val_c: str,
 ):
     print("[INFO] Training...")
     print(f"[INFO] hidden_size = {rnn.hidden_size}")
@@ -73,15 +79,19 @@ def train_loop(
             clip_gradients(gradients)  # gradient clipping for training stability
             step(rnn.weights, gradients, lr)  # gradient descent
 
-            if (iter + 1) % 100 == 0:
-                tqdm.write("== Checkpoint ==")
-                tqdm.write(f"[Iter {iter}] loss = {loss}")
-                sample = rnn.sample("h", 10)
+            if (iter + 1) % val_steps == 0:
+                tqdm.write(f"== Iter {iter} ==")
+                tqdm.write(f"loss = {loss}")
+                sample = rnn.sample(val_c, val_n)
                 tqdm.write(sample)
-                tqdm.write("\n")
 
             pbar.set_postfix(loss=loss)
             pbar.update(1)
+
+    print(f"[INFO] Final Loss = {loss}")
+    print("[INFO] Sample")
+    print(rnn.sample(val_c, val_n))
+    print("[INFO] Training complete!")
 
 
 def main(args):
@@ -92,9 +102,17 @@ def main(args):
     rnn = RNN(hidden_size=args.hidden_size, vocab=vocab)  # init rnn
 
     train_loop(
-        rnn=rnn, data=data, iters=args.iters, lr=args.lr, seq_length=args.seq_length
+        rnn=rnn,
+        data=data,
+        iters=args.iters,
+        lr=args.lr,
+        seq_length=args.seq_length,
+        val_n=args.val_n,
+        val_steps=args.val_steps,
+        val_c=args.val_c,
     )
 
+    print("[INFO] Saving model...")
     rnn.save(args.save_path)
 
 
