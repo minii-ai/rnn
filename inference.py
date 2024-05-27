@@ -1,4 +1,8 @@
 import argparse
+from rnn import RNN
+import time
+import os
+import sys
 
 
 def parse_args():
@@ -11,7 +15,11 @@ def parse_args():
 
 
 def main(args):
-    print(args)
+    rnn = RNN.load(args.weights)
+
+    for char in rnn.sample_progressive(args.char, args.length):
+        sys.stdout.write(char)
+        sys.stdout.flush()
 
 
 if __name__ == "__main__":

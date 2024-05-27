@@ -13,7 +13,15 @@ class RNN:
     @staticmethod
     def load(path: str):
         """Load weights from pickle file"""
-        pass
+        with open(path, "rb") as f:
+            data = pickle.load(f)  # read pickle file
+            rnn = RNN(data["hidden_size"], data["vocab"])
+            rnn.Wxh = data["Wxh"]  # load weights
+            rnn.Whh = data["Whh"]
+            rnn.Why = data["Why"]
+            rnn.bh = data["bh"]
+            rnn.by = data["by"]
+            return rnn
 
     def __init__(self, hidden_size: int, vocab: str):
         """
@@ -70,6 +78,27 @@ class RNN:
 
         sample = "".join([self.idx_to_char[idx] for idx in idxes])
         return char + sample
+
+    def sample_progressive(self, c: str, n: int):
+        """Generate one char at a time, starting with `c` for `n` iterations"""
+        assert len(c) == 1 and c in self.char_to_idx
+        x = np.zeros((1, self.vocab_size))
+        x[:, self.char_to_idx[c]] = 1  # create one hot encoding for char
+        h = np.zeros((1, self.hidden_size))  # initialize hidden state to all 0s
+
+        yield c
+
+        for _ in range(n):
+            probs, h = self(x, h)
+            idx = np.random.choice(
+                self.vocab_size, p=probs.ravel()
+            )  # sample token idx from output
+
+            x = np.zeros((1, self.vocab_size))
+            x[:, idx] = 1  # one hot encoding for sampled token
+            char = self.idx_to_char[idx]
+
+            yield char
 
     def loss(self, inputs: str, targets: str, hprev=None):
         """
