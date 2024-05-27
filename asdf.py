@@ -6,9 +6,7 @@ BSD License
 import numpy as np
 
 # data I/O
-data = open("./data/howtogetrich.txt", "r").read()[
-    :1000
-]  # should be simple plain text file
+data = open("./data/speech.txt", "r").read()  # should be simple plain text file
 chars = list(set(data))
 data_size, vocab_size = len(data), len(chars)
 print("data has %d characters, %d unique." % (data_size, vocab_size))
@@ -69,7 +67,7 @@ def lossFun(inputs, targets, hprev):
     return loss, dWxh, dWhh, dWhy, dbh, dby, hs[len(inputs) - 1]
 
 
-def sample(h, seed_ix, n):
+def sample(h, seed_ix, n, t_=1.0):
     """
     sample a sequence of integers from the model
     h is memory state, seed_ix is seed letter for first time step
@@ -80,7 +78,8 @@ def sample(h, seed_ix, n):
     for t in range(n):
         h = np.tanh(np.dot(Wxh, x) + np.dot(Whh, h) + bh)
         y = np.dot(Why, h) + by
-        p = np.exp(y) / np.sum(np.exp(y))
+        # p = np.exp(y / t) / np.sum(np.exp(y / t))
+        p = np.exp(y / t_) / np.sum(np.exp(y / t_))
         ix = np.random.choice(range(vocab_size), p=p.ravel())
         x = np.zeros((vocab_size, 1))
         x[ix] = 1
@@ -101,9 +100,10 @@ while True:
     targets = [char_to_ix[ch] for ch in data[p + 1 : p + seq_length + 1]]
 
     # sample from the model now and then
-    if n % 100 == 0:
-        sample_ix = sample(hprev, inputs[0], 200)
-        txt = "".join(ix_to_char[ix] for ix in sample_ix)
+    if n % 1000 == 0:
+        # sample_ix = sample(hprev, inputs[0], 200)
+        sample_ix = sample(hprev, char_to_ix["I"], 200, 0.2)
+        txt = "I" + "".join(ix_to_char[ix] for ix in sample_ix)
         print("----\n %s \n----" % (txt,))
 
     # forward seq_length characters through the net and fetch gradient
