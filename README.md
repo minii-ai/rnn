@@ -7,7 +7,9 @@ Time traveling to the past to implement a simple character-level RNN. We'll writ
 The only packages we need are `numpy` and `tqdm`.
 
 ```bash
-
+poetry init
+poetry shell
+poetry install
 ```
 
 # Quick Start
@@ -87,7 +89,9 @@ The hardest part is keeping track of matrix shapes. Do multiply the shapes of th
 
 Hopefully you'll come to the same result! My derivation is slightly different because I use row vectors instead of column vectors $x_t \in (1 \times m)$.
 
-Note $\odot$ is a Hadamard product, it is multiplication applied element-wise. It is also broadcastable so a product between $(1 \times m)$ vector and $(n \times 1)$ vector is $(n \times m)$ matrix. 
+What's nice about calculating these gradients is you'll reuse a lot of the earlier results. Just peel back each layer and apply the chain rule.
+
+<!-- Note $\odot$ is a Hadamard product, it is multiplication applied element-wise. It is also broadcastable so a product between $(1 \times m)$ vector and $(n \times 1)$ vector is $(n \times m)$ matrix.  -->
 
 
 #### Gradient of Loss w.r.t $z_t^y$
@@ -95,22 +99,38 @@ Note $\odot$ is a Hadamard product, it is multiplication applied element-wise. I
 Gradient of the softmax function. 
 
 $$
-\frac{\partial L_t}{\partial z_t^y} = \hat{y_t} - y_t \in (1 \times l)
+\frac{\partial L_t}{\partial z_t^y} = y_t - y_t^{target}
 $$
+
+$$(1 \times l) = (1 \times l) - (1 \times l)$$
 
 #### Gradient of Tanh
 $$\frac{\partial \tanh(u)}{\partial u} = 1 - \tanh(u)^2$$
 
 #### Gradient of 1st Layer
 
+Gradient of the $W_{hy}$
 $$
-\frac{\partial L}{\partial W_{hy}} = \sum_{t=1}^T \frac{\partial z_t^y}{\partial W_{hy}} \frac{\partial L_t}{\partial z_t^y} = \sum_{t=1}^Th_t \odot (\hat{y_t} - y_t)^T \in (l \times n)
+\frac{\partial L}{\partial W_{hy}} = \sum_{t=1}^T \frac{\partial L_t}{\partial z_t^y}\frac{\partial z_t^y}{\partial W_{hy}} = \sum_{t=1}^T (\frac{\partial L_t}{\partial z_t^y})^T h_t
 $$
 
+$$
+(l \times n) = (l \times 1) \times (1 \times n)
+$$
+
+Gradient of the $b_y$
 
 $$
+\frac{\partial L}{\partial b_y} = \sum_{t=1}^T \frac{\partial L_t}{\partial z_t^y}\frac{\partial z_t^y}{\partial b_y} = \frac{\partial L_t}{\partial z_t^y}
+$$
+
+$$
+(1 \times l) = (1 \times l)
+$$
+
+<!-- $$
 \frac{\partial L}{\partial b_y} = \sum_{t=1}^T \frac{\partial z_t^y}{\partial b_y} \frac{\partial L_t}{\partial z_t^y} = \hat{y_t} - y_t \in (1 \times l)
-$$
+$$ -->
 
 #### Gradients of 2nd Layer
 
