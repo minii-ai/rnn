@@ -85,21 +85,19 @@ L = \sum_{t=1}^{T}L_t(\hat{y}_t, y_t) = \sum_{t=1}^{T}{\sum_{i = 1}^{C}-y_t^i
 
 Source: https://phillipi.github.io/6.882/2020/notes/6.036_notes.pdf
 
-The hardest part is keeping track of matrix shapes. Do multiply the shapes of the partials to check if the shapes make sense. Don't memorize. You can derive everything from first principles just by following the RNN section of the textbook above.
+The hardest part is keeping track of matrix shapes. Do multiply the shapes of the partials to check if the shapes make sense. Don't memorize. You can derive everything from first principles just by following the RNN section of the textbook above. Phillip Isola does an amazing job at explaining how to implement BPTT and where the gradients come from. 
 
 Hopefully you'll come to the same result! My derivation is slightly different because I use row vectors instead of column vectors $x_t \in (1 \times m)$.
 
-What's nice about calculating these gradients is you'll reuse a lot of the earlier results. Just peel back each layer and apply the chain rule.
-
-<!-- Note $\odot$ is a Hadamard product, it is multiplication applied element-wise. It is also broadcastable so a product between $(1 \times m)$ vector and $(n \times 1)$ vector is $(n \times m)$ matrix.  -->
+Just peel back each layer and apply the chain rule.
 
 
 #### Gradient of Loss w.r.t $z_t^y$
 
-Gradient of the softmax function. 
+https://cs231n.github.io/neural-networks-case-study/#grad
 
 $$
-\frac{\partial L_t}{\partial z_t^y} = y_t - y_t^{target}
+\frac{\partial L_t}{\partial z_t^y} = \hat{y_t} - y_t
 $$
 
 $$(1 \times l) = (1 \times l) - (1 \times l)$$
@@ -128,20 +126,18 @@ $$
 (1 \times l) = (1 \times l)
 $$
 
-<!-- $$
-\frac{\partial L}{\partial b_y} = \sum_{t=1}^T \frac{\partial z_t^y}{\partial b_y} \frac{\partial L_t}{\partial z_t^y} = \hat{y_t} - y_t \in (1 \times l)
-$$ -->
 
 #### Gradients of 2nd Layer
 
-Let's define some terms which will be useful. This is the most tricky layer.
-
-
+This is the most tricky layer. Let's define some terms which will be useful.
 
 #### Definitions
+
+We'll be taking gradients of the future loss with respect to a hidden state. The future loss is defined as follows. Note the recurrence in the definition (we can write $F_{t-1}$ in terms of $F_t$).
+
 $$F_t = \sum_{u = t + 1}^TL_u$$
 
-$$F_{t - 1} = L_t + \sum_{u = t + 1}^TL_u$$
+$$F_{t - 1} = L_t + \sum_{u = t + 1}^TL_u = L_t + F_t$$
 
 #### Gradient of Future Loss w.r.t hidden state
 
@@ -150,33 +146,63 @@ $$
 = \frac{\partial}{\partial h_{t-1}} {\sum_{u = t}^TL_u} 
 = \frac{\partial}{\partial h_t} {\sum_{u = t}^TL_u} \frac{\partial h_t}{\partial h_{t-1}}
 = (\frac{\partial L_t}{\partial h_t} + \frac{\partial}{\partial h_t}\sum_{u = t + 1}^TL_u) \frac{\partial h_t}{\partial h_{t-1}}
-= (\frac{\partial L_t}{\partial h_t} + \delta^{h_t}) \frac{\partial h_t}{\partial h_{t-1}} \in (1 \times n)
+= (\frac{\partial L_t}{\partial h_t} + \delta^{h_t}) \frac{\partial h_t}{\partial h_{t-1}} = \frac{\partial F_{t-1}}{\partial h_t} \frac{\partial h_t}{\partial h_{t-1}}
+$$
+
+$$
+(1 \times n)
 $$
 
 Note that $\frac{\partial L_t}{\partial h_t} + \delta^{h_t} = \frac{\partial F_{t-1}}{\partial h_t}$.
 
+
+Also note that $\frac{\partial F_T}{\partial h_T} = \bold{0} \in (1 \times n)$ because there $L_{T+1} ...$ do not exist. $L_T$ is the loss at the final timestep, so the final hidden state $h_T$ will have no effect on future losses, hence the zero gradient. 
+
 #### Gradient of Loss w.r.t hidden state
 $$
-\frac{\partial L_t}{\partial h_t} = \frac{\partial L_t}{\partial z_t^y}\frac{\partial z_t^y}{\partial h_t} = (\hat{y_t} - y_t)W_{hy} \in (1 \times n)
+\frac{\partial L_t}{\partial h_t} = \frac{\partial L_t}{\partial z_t^y}\frac{\partial z_t^y}{\partial h_t} = \frac{\partial L_t}{\partial z_t^y} W_{hy}
+$$
+
+$$
+(1 \times n) = (1 \times l) \times (l \times n)
 $$
 
 #### Gradient of hidden state w.r.t to its input before activation $z_t^h$
 
-$$\frac{\partial h_t}{\partial z_t^h} = 1 - h_t^2 \in (1 \times n)$$
+$$\frac{\partial h_t}{\partial z_t^h} = 1 - h_t^2$$
+
+$$(1 \times n)$$
+
 Really this is a $(n \times n)$ diagonal matix but b/c $\frac{\partial h_t^i}{\partial z_t^j} = 0$ when $i \neq j$, I decided to grab diagonal and stuff it into a $(1 \times n)$ row vector. The reason being activation are applied element-wise.
 
-#### Gradient of hidden state w.r.t previous hidden state
+
+<!-- #### Gradient of hidden state w.r.t previous hidden state
 $$
 \frac{\partial h_t}{\partial h_{t-1}} = \frac{\partial h_t}{\partial z_t^h} \frac{\partial z_t^h}{\partial h_{t-1}} =  (1 - h_t^2) \odot W_{hh} \in (n \times n)
-$$
+$$ -->
 
 
-#### Gradient of current + future loss w.r.t hidden state
+#### Gradient of $F_{t-1}$ w.r.t hidden state
 
-Everything is going to come together nicely now.
+Everything is going to come together nicely now. This is just the sum of 2 gradients we defined above.
 
 $$
 \frac{\partial F_{t-1}}{\partial h_t} = \frac{\partial L_t}{\partial h_t} + \frac{\partial}{\partial h_t} \sum_{u = t + 1}^TL_u = \frac{\partial L_t}{\partial h_t} + \delta^{h_t}
+$$
+
+$$
+(1 \times n) = (1 \times n) + (1 \times n)
+$$
+
+
+#### Gradient of $F_{t-1}$ w.r.t $z_t^h$
+
+$$
+\frac{\partial F_{t-1}}{\partial z_t^h} = \frac{\partial F_{t-1}}{\partial h_t} \frac{\partial h_t}{\partial z_t^h}
+$$
+
+$$
+(1 \times n) = (1 \times n) \times (1 \times n)
 $$
 
 
@@ -185,23 +211,60 @@ $$
 Let's calculate them now!
 
 $$
-\frac{\partial L}{\partial W_{xh}} = \sum_{t=1}^{T} \frac{\partial z_t^h}{\partial W_{xh}} \frac{\partial h_t}{\partial z_t^h} \frac{\partial F_{t-1}}{\partial h_t} = \sum_{t=1}^T x_t \odot (1 - h_t^2) ^T  \odot (\frac{\partial F_{t-1}}{\partial h_t})^T
+\frac{\partial L}{\partial W_{xh}} = \sum_{t=1}^{T} \frac{\partial F_{t-1}}{\partial h_t} \frac{\partial h_t}{\partial z_t^h} \frac{\partial z_t^h}{\partial W_{xh}} = \sum_{t=1}^T (\frac{\partial F_{t-1}}{\partial z_t^h})^T x_t
 $$
 
 $$
-\frac{\partial L}{\partial W_{xh}} = \sum_{t=1}^{T} \frac{\partial z_t^h}{\partial W_{xh}} \frac{\partial h_t}{\partial z_t^h} \frac{\partial F_{t-1}}{\partial h_t} = \sum_{t=1}^T h_{t-1} \odot (1 - h_t^2) ^T  \odot (\frac{\partial F_{t-1}}{\partial h_t})^T
+(n \times m) = (n \times 1) \times (1 \times m)
 $$
 
+$$
+\frac{\partial L}{\partial W_{hh}} = \sum_{t=1}^{T} \frac{\partial F_{t-1}}{\partial h_t} \frac{\partial h_t}{\partial z_t^h} \frac{\partial z_t^h}{\partial W_{xh}} = \sum_{t=1}^T (\frac{\partial F_{t-1}}{\partial z_t^h})^T h_{t-1}
+$$
+
+
+$$
+(n \times n) = (n \times 1) \times (1 \times n)
+$$
 
 #### Gradient of hidden state bias vector
 $$
-\frac{\partial L}{\partial b_{h}} = \sum_{t=1}^{T} \frac{\partial z_t^h}{\partial W_{xh}} \frac{\partial h_t}{\partial z_t^h} \frac{\partial F_{t-1}}{\partial h_t} = \sum_{t=1}^T (1 - h_t^2) \odot \frac{\partial F_{t-1}}{\partial h_t}
+\frac{\partial L}{\partial b_{h}} = \sum_{t=1}^{T} \frac{\partial F_{t-1}}{\partial h_t} \frac{\partial h_t}{\partial z_t^h} \frac{\partial z_t^h}{\partial b_h} = \sum_{t=1}^T \frac{\partial F_{t-1}}{\partial z_t^h}
 $$
 
+$$
+(1 \times n) = (1 \times n)
+$$
+
+#### Computing $\delta^h_{t-1}$
+At timestep $t$ to compute $\frac{\partial F_{t-1}}{\partial h_t}$, we need $\delta^h_t$. For timestep $t-1$, we will need to compute $\delta^h_{t-1}$. Let's revisit the definition of this gradient.
+
+$$
+\delta^{h_{t-1}} = \frac{\partial F_{t-1}}{\partial h_t} \frac{\partial h_t}{\partial h_{t-1}}
+$$
+
+Let's apply the chain rule to $\frac{\partial h_t}{\partial h_{t-1}}$. 
+
+$$
+\delta^{h_{t-1}} = \frac{\partial F_{t-1}}{\partial h_t} \frac{\partial h_t}{\partial z_t^h}\frac{\partial z_t^h}{\partial h_{t-1}}
+$$
+
+Simplify.
+
+$$
+\delta^{h_{t-1}} = \frac{\partial F_{t-1}}{\partial z_t^h} \frac{\partial z_t^h}{\partial h_{t-1}} = \frac{\partial F_{t-1}}{\partial z_t^h} W_{hh}
+$$
+
+$$(1 \times n) = (1 \times n) \times (n \times n)$$
+
+We have everything we need to implement backprop. In `rnn.py` we will translate all of this to code.
 
 ### Gradient Descent
 
-We go in the opposite direction of the gradient to minimize the loss.
+We'll implement a version of gradient descent called Adagrad. One of the common problems training RNNs are the exploding vanishing gradients. Adagrad *adapts* our learning rate so that we take smaller steps when the gradients are big and bigger steps when gradients are small. This improves our training stability significantly. In fact, using vanilla stochastic gradient descent, training does not converge.
+
+$$
+$$
 
 ## Resources
 
