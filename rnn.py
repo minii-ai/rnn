@@ -4,11 +4,8 @@ import pickle
 
 def softmax(z, t: float = 1.0):
     """Softmax w/ temperature t"""
-    logits = z / t
-    max_logit = np.max(logits)
-    exp_logits = np.exp(logits - max_logit)
-    probs = exp_logits / np.sum(exp_logits)
-    return probs
+    z_exp = np.exp(z / t)
+    return z_exp / np.sum(z_exp)
 
 
 class RNN:
@@ -98,26 +95,26 @@ class RNN:
         the loss, gradients (dWxh, dWhh, dWhy, dbh, dby), and final hidden state
         """
         assert len(inputs) == len(targets)
-        hprev = np.zeros((1, self.hidden_size)) if hprev is not None else np.copy(hprev)
         xs, hs, ps = {}, {}, {}  # keep track of x, hidden states, and output probs
-        hs[-1] = hprev  # store initial hidden state
+        hs[-1] = (
+            hprev if hprev is not None else np.zeros((1, self.hidden_size))
+        )  # store initial hidden state
+
         inputs, targets = [self.char_to_idx[char] for char in inputs], [
             self.char_to_idx[char] for char in targets
         ]
         loss = 0
 
-        # compute loss at each timestep
+        # forward pass
         for t in range(len(inputs)):
             x = np.zeros((1, self.vocab_size))
-            x[0, [inputs[t]]] = 1  # one hot encoding of char
-            probs, h = self(x, hs[t - 1])  # x, hprev -> rnn -> probs, hnext
+            x[0, inputs[t]] = 1  # one hot encoding
+            p, h = self(x, hs[t - 1])  # rnn
 
-            xs[t] = x  # store xs, hs, and probs, we'll use them during backprop
+            xs[t] = x  # store x, hidden state, probs (we'll need them for backprop)
             hs[t] = h
-            ps[t] = probs
-
-            # cross entropy loss, nll of the predicted prob for the target char
-            loss += -np.log(probs[0, targets[t]])
+            ps[t] = p
+            loss += -np.log(ps[t][0, targets[t]])
 
         # gradient of loss w.r.t weights and biases
         dWxh, dWhh, dWhy = (

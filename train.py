@@ -38,7 +38,8 @@ def build_vocab(data: str) -> str:
 
 def clip_gradients(gradients):
     for gradient in gradients:
-        np.clip(gradient, -1, 1, out=gradient)  # clip gradient in-place
+        # np.clip(gradient, -1, 1, out=gradient)  # clip gradient in-place
+        np.clip(gradient, -5, 5, out=gradient)  # clip gradient in-place
 
 
 def train_loop(
@@ -74,12 +75,12 @@ def train_loop(
     smooth_loss = -np.log(1.0 / rnn.vocab_size) * seq_length
 
     with tqdm(total=iters, position=0) as pbar:
-        for iter in range(1000000000000000000):
+        for iter in range(iters):
             if i >= len(data) - 1:
                 i = 0  # reset to start of data
                 h = np.zeros((1, rnn.hidden_size))  # reset hidden state
 
-            batch = data[i : i + seq_length + 1]
+            batch = data[i : i + seq_length]
             inputs, targets = batch[:-1], batch[1:]  # prepare input, target for loss
 
             # compute loss and gradients
@@ -94,16 +95,18 @@ def train_loop(
                 mem += gradient**2
                 weight -= lr * gradient / np.sqrt(mem + 1e-8)
 
-            if (iter + 1) % val_steps == 0:  # validation step
-                tqdm.write(f"== Iter {iter} ==")
+            if (
+                (iter + 1) % val_steps == 0 or iter == iters - 1 or iter == 0
+            ):  # validation step
+                tqdm.write(f"== Iter {iter + 1} ==")
                 tqdm.write(f"loss = {smooth_loss}")
                 sample = rnn.sample(val_c, val_n, val_t)
                 tqdm.write(sample)
 
             i += seq_length  # move to next batch
 
-            # pbar.set_postfix(loss=loss)
-            # pbar.update(1)
+            pbar.set_postfix(loss=loss)
+            pbar.update(1)
 
     print(f"[INFO] Final Loss = {loss}")
     print("[INFO] Sample")
