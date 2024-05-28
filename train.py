@@ -6,10 +6,10 @@ from tqdm import tqdm
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", "-d", type=str, default="./data/howtogetrich.txt")
+    parser.add_argument("--data", "-d", type=str, default="./data/stevejobs.txt")
     parser.add_argument("--hidden_size", "-hs", type=int, default=64)
     parser.add_argument("--iters", "-i", type=int, default=1000)
-    parser.add_argument("--lr", type=float, default=1e-2)
+    parser.add_argument("--lr", type=float, default=1e-1)
     parser.add_argument("--seq_length", "-s", type=int, default=25)
     parser.add_argument("--save_path", "-sp", required=True)
     parser.add_argument("--val_n", "-vn", type=int, default=50)
@@ -40,11 +40,6 @@ def clip_gradients(gradients):
         np.clip(gradient, -1, 1, out=gradient)  # clip gradient in-place
 
 
-def step(weights: np.ndarray, gradients: np.ndarray, lr: float):
-    for weight, gradient in zip(weights, gradients):
-        weight += -lr * gradient  # go in the opposite direction of the gradient
-
-
 def train_loop(
     rnn: RNN,
     data: str,
@@ -65,8 +60,17 @@ def train_loop(
 
     i = 0
     h = np.zeros((1, rnn.hidden_size))
+
+    # for adagrad (https://gist.github.com/karpathy/d4dee566867f8291f086)
+    mWxh, mWhh, mWhy = (
+        np.zeros_like(rnn.Wxh),
+        np.zeros_like(rnn.Whh),
+        np.zeros_like(rnn.Why),
+    )
+    mbh, mby = np.zeros_like(rnn.bh), np.zeros_like(rnn.by)
+
     with tqdm(total=iters, position=0) as pbar:
-        for iter in range(iters):
+        for iter in range(1000000000000000000):
             if i >= len(data) - 1:
                 i = 0  # reset to start of data
                 h = np.zeros((1, rnn.hidden_size))  # reset hidden state
@@ -77,25 +81,23 @@ def train_loop(
             # compute loss and gradients
             loss, gradients, h = rnn.loss(inputs, targets, h)
             clip_gradients(gradients)  # gradient clipping for training stability
-            step(rnn.weights, gradients, lr)  # gradient descent
 
-            # print(gradients[2])
-
-            print(loss)
-            import time
-
-            # time.sleep(0.5)
-            # raise RuntimeError
-
-            # raise RuntimeError
+            # adagrad gradient descent
+            for weight, gradient, mem in zip(
+                rnn.weights, gradients, [mWxh, mWhh, mWhy, mbh, mby]
+            ):
+                mem += gradient**2
+                weight -= lr * gradient / np.sqrt(mem + 1e-8)
 
             if (iter + 1) % val_steps == 0:  # validation step
                 tqdm.write(f"== Iter {iter} ==")
                 tqdm.write(f"loss = {loss}")
                 sample = rnn.sample(val_c, val_n)
                 tqdm.write(sample)
+                time.sleep(0.5)
 
             i += seq_length  # move to next batch
+            import time
 
             # pbar.set_postfix(loss=loss)
             # pbar.update(1)
@@ -109,10 +111,6 @@ def train_loop(
 def main(args):
     np.random.seed(0)
     data = read_file(args.data)  # read data from txt file
-    # data = data[:250]
-    # data = data[:100]
-    # data = data[:50]
-    data = data[:25]
     vocab = build_vocab(data)  # build vocab of unique chars
     rnn = RNN(hidden_size=args.hidden_size, vocab=vocab)  # init rnn
 

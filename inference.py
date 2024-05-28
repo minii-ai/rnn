@@ -17,7 +17,7 @@ def parse_args():
 def main(args):
     rnn = RNN.load(args.weights)
 
-    for char in rnn.sample_progressive(args.char, args.length):
+    for char in rnn.sample_progressive(args.char, args.length - 1):
         sys.stdout.write(char)
         sys.stdout.flush()
 

@@ -7,6 +7,7 @@ import numpy as np
 
 # data I/O
 data = open("./data/stevejobs.txt", "r").read()  # should be simple plain text file
+data = "hello world"
 chars = list(set(data))
 data_size, vocab_size = len(data), len(chars)
 print("data has %d characters, %d unique." % (data_size, vocab_size))
@@ -15,7 +16,8 @@ ix_to_char = {i: ch for i, ch in enumerate(chars)}
 
 # hyperparameters
 hidden_size = 100  # size of hidden layer of neurons
-seq_length = 25  # number of steps to unroll the RNN for
+# seq_length = 25  # number of steps to unroll the RNN for
+seq_length = 10  # number of steps to unroll the RNN for
 learning_rate = 1e-1
 
 # model parameters
@@ -65,6 +67,7 @@ def lossFun(inputs, targets, hprev):
         dWhh += np.dot(dhraw.T, hs[t - 1])
         dhnext = np.dot(dhraw, Whh)
     for dparam in [dWxh, dWhh, dWhy, dbh, dby]:
+        # np.clip(dparam, -1, 1, out=dparam)  # clip to mitigate exploding gradients
         np.clip(dparam, -5, 5, out=dparam)  # clip to mitigate exploding gradients
     return loss, dWxh, dWhh, dWhy, dbh, dby, hs[len(inputs) - 1]
 
@@ -104,7 +107,7 @@ while True:
     if n % 1000 == 0:
         # sample_ix = sample(hprev, inputs[0], 200)
         # sample_ix = sample(hprev, inputs[0], 300)
-        sample_ix = sample(hprev, char_to_ix["I"], 300)
+        sample_ix = sample(hprev, char_to_ix["h"], 10)
         txt = "".join(ix_to_char[ix] for ix in sample_ix)
         print("----\n %s \n----" % (txt,))
 

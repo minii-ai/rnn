@@ -92,15 +92,19 @@ class RNN:
         Computes loss between input and target chars and returns
         the loss, gradients (dWxh, dWhh, dWhy, dbh, dby), and final hidden state
         """
+        assert len(inputs) == len(targets)
         hprev = np.zeros((1, self.hidden_size)) if hprev is not None else np.copy(hprev)
         xs, hs, ps = {}, {}, {}  # keep track of x, hidden states, and output probs
         hs[-1] = hprev  # store initial hidden state
+        inputs, targets = [self.char_to_idx[char] for char in inputs], [
+            self.char_to_idx[char] for char in targets
+        ]
         loss = 0
 
         # compute loss at each timestep
         for t in range(len(inputs)):
             x = np.zeros((1, self.vocab_size))
-            x[:, self.char_to_idx[inputs[t]]] = 1  # one hot encoding of char
+            x[0, [inputs[t]]] = 1  # one hot encoding of char
             probs, h = self(x, hs[t - 1])  # x, hprev -> rnn -> probs, hnext
 
             xs[t] = x  # store xs, hs, and probs, we'll use them during backprop
@@ -108,7 +112,7 @@ class RNN:
             ps[t] = probs
 
             # cross entropy loss, nll of the predicted prob for the target char
-            loss += -np.log(probs[0, self.char_to_idx[targets[t]]])
+            loss += -np.log(probs[0, targets[t]])
 
         # gradient of loss w.r.t weights and biases
         dWxh, dWhh, dWhy = (
@@ -124,34 +128,28 @@ class RNN:
         # backprop thr. time
         for t in reversed(range(len(inputs))):
             dzy = np.copy(ps[t])  # loss at t w.r.t zy
-            dzy[:, self.char_to_idx[targets[t]]] -= 1
-
-            # print(dzy)
+            dzy[:, targets[t]] -= 1
 
             # 2nd layer
-            # raise RuntimeError
-            dWhy += hs[t] * dzy.T
-
-            # dby += dzy
+            dWhy += dzy.T @ hs[t]
+            dby += dzy
 
             # intermediate gradients
-            # dLdh = dzy @ self.Why  # gradient of loss at L_t w.r.t hidden state h_t
-            # dhdzh = 1 - hs[t] ** 2  # gradient thr. tanh activation
-            # dhdhprev = dhdzh * self.Whh  # gradient of hidden state h_t w.r.t h_{t-1}
-            # dFprevdh = dLdh + dFdh  # gradient of F_{t-1} w.r.t h_t
+            dLdh = dzy @ self.Why  # gradient of loss at L_t w.r.t hidden state h_t
+            dhdzh = 1 - hs[t] ** 2  # gradient thr. tanh activation
+            dFprevdh = dLdh + dFdh  # gradient of F_{t-1} w.r.t h_t
+            dFprevdzh = dFprevdh * dhdzh  # gradient of F_{t-1} w.r.t z_h
 
-            # # 1st layer
-            # dWxh += xs[t] * dhdzh.T * dFprevdh.T
-            # dWhh += hs[t - 1] * dhdzh.T * dFprevdh.T
-            # dbh += dhdzh * dFprevdh
+            # 1st layer
+            dWxh += dFprevdzh.T @ xs[t]
+            dWhh += dFprevdzh.T @ hs[t - 1]
+            dbh += dFprevdzh
 
             # update dFdh for next timestep t-1
-            # dFdh = dFprevdh @ dhdhprev
+            dFdh = dFprevdzh @ self.Whh
 
         gradients = (dWxh, dWhh, dWhy, dbh, dby)  # collect gradients
-        hnext = hs[len(inputs) - 1]
-
-        # print(dby)
+        hnext = hs[len(inputs) - 1]  # final hidden state
 
         return loss, gradients, hnext
 
