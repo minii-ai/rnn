@@ -88,7 +88,7 @@ class RNN:
         """Generate one char at a time, starting with c for n iterations at temperature t"""
         assert len(c) == 1 and c in self.char_to_idx
         x = np.zeros((1, self.vocab_size))
-        x[:, self.char_to_idx[c]] = 1  # create one hot encoding for char
+        x[0, self.char_to_idx[c]] = 1  # create one hot encoding for char
         h = np.zeros((1, self.hidden_size))  # initialize hidden state to all 0s
 
         yield c

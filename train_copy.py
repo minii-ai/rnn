@@ -84,9 +84,7 @@ def train_loop(
             h = np.zeros((1, rnn.hidden_size))  # initial hidden state
             for i in range(0, len(batch_ids), seq_length):
                 seq = batch_ids[i : i + seq_length]
-
-                # prepare input, target for loss
-                inputs, targets = (seq[:-1], seq[1:])
+                inputs, targets = (seq[:-1], seq[1:])  # prepare input, target for loss
 
                 # compute loss and gradients
                 loss, gradients, h = rnn.loss(inputs, targets, h)
