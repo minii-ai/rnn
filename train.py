@@ -15,6 +15,7 @@ def parse_args():
     parser.add_argument("--val_n", "-vn", type=int, default=50)
     parser.add_argument("--val_steps", "-vs", type=int, default=100)
     parser.add_argument("--val_c", "-vc", type=str, default="h")
+    parser.add_argument("--val_t", "-vt", type=float, default=0.5)
 
     return parser.parse_args()
 
@@ -49,14 +50,16 @@ def train_loop(
     val_n: int,
     val_steps: int,
     val_c: str,
+    val_t: float,
 ):
     print("[INFO] Training...")
-    print(f"[INFO] hidden_size = {rnn.hidden_size}")
+    print(f"[INFO] data_size = {len(data)}")
+    print(f"[INFO] num_params = {rnn.num_params}")
     print(f"[INFO] vocab_size = {rnn.vocab_size}")
+    print(f"[INFO] hidden_size = {rnn.hidden_size}")
     print(f"[INFO] lr = {lr}")
     print(f"[INFO] iters = {iters}")
     print(f"[INFO] seq_length = {seq_length}")
-    print(f"[INFO] data_size = {len(data)}")
 
     i = 0
     h = np.zeros((1, rnn.hidden_size))
@@ -68,6 +71,7 @@ def train_loop(
         np.zeros_like(rnn.Why),
     )
     mbh, mby = np.zeros_like(rnn.bh), np.zeros_like(rnn.by)
+    smooth_loss = -np.log(1.0 / rnn.vocab_size) * seq_length
 
     with tqdm(total=iters, position=0) as pbar:
         for iter in range(1000000000000000000):
@@ -80,6 +84,7 @@ def train_loop(
 
             # compute loss and gradients
             loss, gradients, h = rnn.loss(inputs, targets, h)
+            smooth_loss = smooth_loss * 0.999 + loss * 0.001
             clip_gradients(gradients)  # gradient clipping for training stability
 
             # adagrad gradient descent
@@ -91,13 +96,11 @@ def train_loop(
 
             if (iter + 1) % val_steps == 0:  # validation step
                 tqdm.write(f"== Iter {iter} ==")
-                tqdm.write(f"loss = {loss}")
-                sample = rnn.sample(val_c, val_n)
+                tqdm.write(f"loss = {smooth_loss}")
+                sample = rnn.sample(val_c, val_n, val_t)
                 tqdm.write(sample)
-                time.sleep(0.5)
 
             i += seq_length  # move to next batch
-            import time
 
             # pbar.set_postfix(loss=loss)
             # pbar.update(1)
@@ -123,6 +126,7 @@ def main(args):
         val_n=args.val_n,
         val_steps=args.val_steps,
         val_c=args.val_c,
+        val_t=args.val_t,
     )
 
     print("[INFO] Saving model...")

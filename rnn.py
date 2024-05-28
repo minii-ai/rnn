@@ -2,9 +2,13 @@ import numpy as np
 import pickle
 
 
-def softmax(z):
-    e_z = np.exp(z)
-    return e_z / e_z.sum(axis=1)
+def softmax(z, t: float = 1.0):
+    """Softmax w/ temperature t"""
+    logits = z / t
+    max_logit = np.max(logits)
+    exp_logits = np.exp(logits - max_logit)
+    probs = exp_logits / np.sum(exp_logits)
+    return probs
 
 
 class RNN:
@@ -47,27 +51,28 @@ class RNN:
         self.by = np.random.randn(1, self.vocab_size)
 
         self.weights = (self.Wxh, self.Whh, self.Why, self.bh, self.by)
+        self.num_params = sum(w.size for w in self.weights)
 
-    def __call__(self, x, h) -> np.ndarray:
-        """Sample from RNN(x_t, h_{t-1}) -> y_t, h_t"""
+    def __call__(self, x, h, t=1.0) -> np.ndarray:
+        """RNN forward pass at softmax temperature t"""
         assert x.shape == (1, self.vocab_size) and h.shape == (1, self.hidden_size)
         zh = x @ self.Wxh.T + h @ self.Whh.T + self.bh
         hnext = np.tanh(zh)
         zy = hnext @ self.Why.T + self.by
-        y = softmax(zy)
+        y = softmax(zy, t)
 
         return y, hnext
 
-    def sample(self, char: str, n: int):
-        """Generates samples starting with `char` for `n` iterations"""
+    def sample(self, char: str, n: int, t: float = 1.0):
+        """Generates samples starting with char for n iterations at temperature t"""
         sample = ""
-        for char in self.sample_progressive(char, n):
+        for char in self.sample_progressive(char, n, t):
             sample += char
 
         return sample
 
-    def sample_progressive(self, c: str, n: int):
-        """Generate one char at a time, starting with `c` for `n` iterations"""
+    def sample_progressive(self, c: str, n: int, t: float = 1.0):
+        """Generate one char at a time, starting with c for n iterations at temperature t"""
         assert len(c) == 1 and c in self.char_to_idx
         x = np.zeros((1, self.vocab_size))
         x[:, self.char_to_idx[c]] = 1  # create one hot encoding for char
@@ -76,7 +81,7 @@ class RNN:
         yield c
 
         for _ in range(n):
-            probs, h = self(x, h)
+            probs, h = self(x, h, t)
             idx = np.random.choice(
                 self.vocab_size, p=probs.ravel()
             )  # sample token idx from output

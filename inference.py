@@ -10,6 +10,7 @@ def parse_args():
     parser.add_argument("--weights", "-w", type=str, required=True)
     parser.add_argument("--char", "-c", type=str, required=True)
     parser.add_argument("--length", "-n", type=int, default=10)
+    parser.add_argument("--temperature", "-t", type=float, default=0.5)
 
     return parser.parse_args()
 
