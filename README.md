@@ -12,19 +12,27 @@ poetry shell
 poetry install
 ```
 
+# Dataset
+
+
 # Quick Start
 
+Train and sample from RNN.
+
 ## Training
+
+
 ```bash
 
 ```
 
 ## Inference
+
+Load weights and generate `N` characters starting with `C`.
+
 ```bash
-
-
+python3 inference.py -w ./weights.pkl -c C -n N
 ```
-
 
 # Background
 
@@ -108,6 +116,7 @@ $$\frac{\partial \tanh(u)}{\partial u} = 1 - \tanh(u)^2$$
 #### Gradient of 1st Layer
 
 Gradient of the $W_{hy}$
+
 $$
 \frac{\partial L}{\partial W_{hy}} = \sum_{t=1}^T \frac{\partial L_t}{\partial z_t^y}\frac{\partial z_t^y}{\partial W_{hy}} = \sum_{t=1}^T (\frac{\partial L_t}{\partial z_t^y})^T h_t
 $$
@@ -156,7 +165,7 @@ $$
 Note that $\frac{\partial L_t}{\partial h_t} + \delta^{h_t} = \frac{\partial F_{t-1}}{\partial h_t}$.
 
 
-Also note that $\frac{\partial F_T}{\partial h_T} = \bold{0} \in (1 \times n)$ because there $L_{T+1} ...$ do not exist. $L_T$ is the loss at the final timestep, so the final hidden state $h_T$ will have no effect on future losses, hence the zero gradient. 
+Also note that $\frac{\partial F_T}{\partial h_T} = 0 \in (1 \times n)$ because there $L_{T+1} ...$ do not exist. $L_T$ is the loss at the final timestep, so the final hidden state $h_T$ will have no effect on future losses, hence the zero gradient. 
 
 #### Gradient of Loss w.r.t hidden state
 $$
@@ -174,12 +183,6 @@ $$\frac{\partial h_t}{\partial z_t^h} = 1 - h_t^2$$
 $$(1 \times n)$$
 
 Really this is a $(n \times n)$ diagonal matix but b/c $\frac{\partial h_t^i}{\partial z_t^j} = 0$ when $i \neq j$, I decided to grab diagonal and stuff it into a $(1 \times n)$ row vector. The reason being activation are applied element-wise.
-
-
-<!-- #### Gradient of hidden state w.r.t previous hidden state
-$$
-\frac{\partial h_t}{\partial h_{t-1}} = \frac{\partial h_t}{\partial z_t^h} \frac{\partial z_t^h}{\partial h_{t-1}} =  (1 - h_t^2) \odot W_{hh} \in (n \times n)
-$$ -->
 
 
 #### Gradient of $F_{t-1}$ w.r.t hidden state
@@ -257,16 +260,26 @@ $$
 
 $$(1 \times n) = (1 \times n) \times (n \times n)$$
 
-We have everything we need to implement backprop. In `rnn.py` we will translate all of this to code.
+We now have everything we need to implement backprop. In `rnn.py` we will translate all of this to code.
 
 ### Gradient Descent
 
 We'll implement a version of gradient descent called Adagrad. One of the common problems training RNNs are the exploding vanishing gradients. Adagrad *adapts* our learning rate so that we take smaller steps when the gradients are big and bigger steps when gradients are small. This improves our training stability significantly. In fact, using vanilla stochastic gradient descent, training does not converge.
 
 $$
+g_t = \nabla_{\theta} L(\theta_t)
+$$
+$$
+G_t = G_{t-1} + g_t^2
+$$
+$$
+\theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{G_t + \epsilon}} g_t
 $$
 
+We implement this in `train.py`.
+
 ## Resources
+Would not have made it without these. Read them.
 
 - https://phillipi.github.io/6.882/2020/notes/6.036_notes.pdf
 - https://stanford.edu/~shervine/teaching/cs-230/cheatsheet-recurrent-neural-networks
