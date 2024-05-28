@@ -34,9 +34,15 @@ class RNN:
         """
         self.hidden_size = hidden_size
         self.vocab = vocab
-        self.vocab_size = len(vocab)
+        self.vocab_size = len(vocab) + 1
         self.char_to_idx = {char: i for i, char in enumerate(vocab)}
         self.idx_to_char = {i: char for i, char in enumerate(vocab)}
+
+        # add EOS token
+        self.eos_token = "<EOS>"
+        self.eos_token_idx = self.vocab_size - 1
+        self.char_to_idx[self.eos_token] = self.eos_token_idx
+        self.idx_to_char[self.eos_token_idx] = self.eos_token
 
         # weights
         self.Wxh = np.random.randn(hidden_size, self.vocab_size) * 0.01
@@ -49,6 +55,16 @@ class RNN:
 
         self.weights = (self.Wxh, self.Whh, self.Why, self.bh, self.by)
         self.num_params = sum(w.size for w in self.weights)
+
+    def encode(self, chars: str):
+        """Turns a string of chars into idxes"""
+        ids = [self.char_to_idx[char] for char in chars] + [self.eos_token_idx]
+        return ids
+
+    def decode(self, idxes: list[int]):
+        """Turns a list of idxes into chars"""
+        chars = [self.idx_to_char[idx] for idx in idxes if idx != self.eos_token_idx]
+        return "".join(chars)
 
     def __call__(self, x, h, t=1.0) -> np.ndarray:
         """RNN forward pass at softmax temperature t"""
@@ -89,9 +105,9 @@ class RNN:
 
             yield char
 
-    def loss(self, inputs: str, targets: str, hprev=None):
+    def loss(self, inputs: list[int], targets: list[int], hprev=None):
         """
-        Computes loss between input and target chars and returns
+        Computes loss between input and target chars idxes and returns
         the loss, gradients (dWxh, dWhh, dWhy, dbh, dby), and final hidden state
         """
         assert len(inputs) == len(targets)
@@ -99,10 +115,6 @@ class RNN:
         hs[-1] = (
             hprev if hprev is not None else np.zeros((1, self.hidden_size))
         )  # store initial hidden state
-
-        inputs, targets = [self.char_to_idx[char] for char in inputs], [
-            self.char_to_idx[char] for char in targets
-        ]
         loss = 0
 
         # forward pass
@@ -147,8 +159,7 @@ class RNN:
             dWhh += dFprevdzh.T @ hs[t - 1]
             dbh += dFprevdzh
 
-            # update dFdh for next timestep t-1
-            dFdh = dFprevdzh @ self.Whh
+            dFdh = dFprevdzh @ self.Whh  # update dFdh for next timestep t-1
 
         gradients = (dWxh, dWhh, dWhy, dbh, dby)  # collect gradients
         hnext = hs[len(inputs) - 1]  # final hidden state

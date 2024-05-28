@@ -2,6 +2,7 @@ import argparse
 import numpy as np
 from rnn import RNN
 from tqdm import tqdm
+import re
 
 
 def parse_args():
@@ -43,7 +44,7 @@ def clip_gradients(gradients):
 
 def train_loop(
     rnn: RNN,
-    data: str,
+    dataset: list[str],
     iters: int,
     lr: float,
     seq_length: int,
@@ -53,7 +54,7 @@ def train_loop(
     val_t: float,
 ):
     print("[INFO] Training...")
-    print(f"[INFO] data_size = {len(data)}")
+    print(f"[INFO] data_size = {len(dataset)}")
     print(f"[INFO] num_params = {rnn.num_params}")
     print(f"[INFO] vocab_size = {rnn.vocab_size}")
     print(f"[INFO] hidden_size = {rnn.hidden_size}")
@@ -73,41 +74,56 @@ def train_loop(
     mbh, mby = np.zeros_like(rnn.bh), np.zeros_like(rnn.by)
     smooth_loss = -np.log(1.0 / rnn.vocab_size) * seq_length
 
-    with tqdm(total=iters, position=0) as pbar:
-        for iter in range(iters):
-            if i >= len(data) - 1:
-                i = 0  # reset to start of data
-                h = np.zeros((1, rnn.hidden_size))  # reset hidden state
+    global_step = 0
+    pbar = tqdm(total=iters, position=0)
+    stop = False
 
-            batch = data[i : i + seq_length]
-            inputs, targets = batch[:-1], batch[1:]  # prepare input, target for loss
+    while True:
+        for batch in dataset:
+            batch_ids = rnn.encode(batch)  # convert batch to idxes
+            h = np.zeros((1, rnn.hidden_size))  # initial hidden state
+            for i in range(0, len(batch_ids), seq_length):
+                seq = batch_ids[i : i + seq_length]
 
-            # compute loss and gradients
-            loss, gradients, h = rnn.loss(inputs, targets, h)
-            smooth_loss = smooth_loss * 0.999 + loss * 0.001
-            clip_gradients(gradients)  # gradient clipping for training stability
+                # prepare input, target for loss
+                inputs, targets = (seq[:-1], seq[1:])
 
-            # adagrad gradient descent
-            for weight, gradient, mem in zip(
-                rnn.weights, gradients, [mWxh, mWhh, mWhy, mbh, mby]
-            ):
-                mem += gradient**2
-                weight -= lr * gradient / np.sqrt(mem + 1e-8)
+                # compute loss and gradients
+                loss, gradients, h = rnn.loss(inputs, targets, h)
+                smooth_loss = smooth_loss * 0.999 + loss * 0.001
+                clip_gradients(gradients)  # gradient clipping for training stability
 
-            if (
-                (iter + 1) % val_steps == 0 or iter == iters - 1 or iter == 0
-            ):  # validation step
-                tqdm.write(f"== Iter {iter + 1} ==")
-                tqdm.write(f"loss = {smooth_loss}")
-                sample = rnn.sample(val_c, val_n, val_t)
-                tqdm.write(sample)
+                # adagrad gradient descent
+                for weight, gradient, mem in zip(
+                    rnn.weights, gradients, [mWxh, mWhh, mWhy, mbh, mby]
+                ):
+                    mem += gradient**2
+                    weight -= lr * gradient / np.sqrt(mem + 1e-8)
 
-            i += seq_length  # move to next batch
+                # validation step
+                if (
+                    (global_step + 1) % val_steps == 0
+                    or global_step == iters - 1
+                    or global_step == 0
+                ):
+                    tqdm.write(f"== Iter {global_step + 1} ==")
+                    tqdm.write(f"loss = {smooth_loss}")
+                    sample = rnn.sample(val_c, val_n, val_t)
+                    tqdm.write(sample)
 
-            pbar.set_postfix(loss=loss)
-            pbar.update(1)
+                global_step += 1
+                pbar.set_postfix(loss=loss)
+                pbar.update(1)
 
-    print(f"[INFO] Final Loss = {loss}")
+                if global_step >= iters:
+                    stop = True
+                    break
+            if stop:
+                break
+        if stop:
+            break
+
+    print(f"[INFO] Final Loss = {smooth_loss}")
     print("[INFO] Sample")
     print(rnn.sample(val_c, val_n))
     print("[INFO] Training complete!")
@@ -118,10 +134,11 @@ def main(args):
     data = read_file(args.data)  # read data from txt file
     vocab = build_vocab(data)  # build vocab of unique chars
     rnn = RNN(hidden_size=args.hidden_size, vocab=vocab)  # init rnn
+    dataset = re.split(r"\n\s*\n", data)  # split data into paragraphs
 
     train_loop(
         rnn=rnn,
-        data=data,
+        dataset=dataset,
         iters=args.iters,
         lr=args.lr,
         seq_length=args.seq_length,
@@ -131,8 +148,8 @@ def main(args):
         val_t=args.val_t,
     )
 
-    print("[INFO] Saving model...")
-    rnn.save(args.save_path)
+    # print("[INFO] Saving model...")
+    # rnn.save(args.save_path)
 
 
 if __name__ == "__main__":
