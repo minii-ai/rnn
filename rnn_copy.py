@@ -51,8 +51,8 @@ class RNN:
         self.Why = np.random.randn(self.vocab_size, hidden_size) * 0.01
 
         # biases
-        self.bh = np.random.randn(1, hidden_size)
-        self.by = np.random.randn(1, self.vocab_size)
+        self.bh = np.random.randn(hidden_size, 1)
+        self.by = np.random.randn(self.vocab_size, 1)
 
         self.weights = (self.Wxh, self.Whh, self.Why, self.bh, self.by)
         self.num_params = sum(w.size for w in self.weights)
@@ -70,10 +70,10 @@ class RNN:
 
     def __call__(self, x, h, t=1.0) -> np.ndarray:
         """RNN forward pass at softmax temperature t"""
-        assert x.shape == (1, self.vocab_size) and h.shape == (1, self.hidden_size)
-        zh = x @ self.Wxh.T + h @ self.Whh.T + self.bh
+        assert x.shape == (self.vocab_size, 1) and h.shape == (self.hidden_size, 1)
+        zh = self.Wxh @ x + self.Whh @ h + self.bh
         hnext = np.tanh(zh)
-        zy = hnext @ self.Why.T + self.by
+        zy = self.Why @ hnext + self.by
         y = softmax(zy, t)
 
         return y, hnext
@@ -89,9 +89,9 @@ class RNN:
     def sample_progressive(self, c: str, n: int, t: float = 1.0):
         """Generate one char at a time, starting with c for n iterations at temperature t"""
         assert len(c) == 1 and c in self.char_to_idx
-        x = np.zeros((1, self.vocab_size))
-        x[0, self.char_to_idx[c]] = 1  # create one hot encoding for char
-        h = np.zeros((1, self.hidden_size))  # initialize hidden state to all 0s
+        x = np.zeros((self.vocab_size, 1))
+        x[self.char_to_idx[c]] = 1  # create one hot encoding for char
+        h = np.zeros((self.hidden_size, 1))  # initialize hidden state to all 0s
 
         yield c
 
@@ -101,8 +101,8 @@ class RNN:
                 self.vocab_size, p=probs.ravel()
             )  # sample token idx from output
 
-            x = np.zeros((1, self.vocab_size))
-            x[:, idx] = 1  # one hot encoding for sampled token
+            x = np.zeros((self.vocab_size, 1))
+            x[idx] = 1  # one hot encoding for sampled token
             char = self.idx_to_char[idx]
 
             yield char
@@ -113,60 +113,110 @@ class RNN:
         the loss, gradients (dWxh, dWhh, dWhy, dbh, dby), and final hidden state
         """
         assert len(inputs) == len(targets)
-        xs, hs, ps = {}, {}, {}  # keep track of x, hidden states, and output probs
-        hs[-1] = (
-            hprev if hprev is not None else np.zeros((1, self.hidden_size))
-        )  # store initial hidden state
+        xs, hs, ys, ps = {}, {}, {}, {}
+        hs[-1] = np.copy(hprev)
         loss = 0
-
         # forward pass
         for t in range(len(inputs)):
-            x = np.zeros((1, self.vocab_size))
-            x[0, inputs[t]] = 1  # one hot encoding
-            p, h = self(x, hs[t - 1])  # rnn
-
-            xs[t] = x  # store x, hidden state, probs (we'll need them for backprop)
-            hs[t] = h
-            ps[t] = p
-            loss += -np.log(ps[t][0, targets[t]])
-
-        # gradient of loss w.r.t weights and biases
+            xs[t] = np.zeros((self.vocab_size, 1))  # encode in 1-of-k representation
+            xs[t][inputs[t]] = 1
+            hs[t] = np.tanh(
+                np.dot(self.Wxh, xs[t]) + np.dot(self.Whh, hs[t - 1]) + self.bh
+            )  # hidden state
+            ys[t] = (
+                np.dot(self.Why, hs[t]) + self.by
+            )  # unnormalized log probabilities for next chars
+            ps[t] = np.exp(ys[t]) / np.sum(
+                np.exp(ys[t])
+            )  # probabilities for next chars
+            loss += -np.log(ps[t][targets[t], 0])  # softmax (cross-entropy loss)
+        # backward pass: compute gradients going backwards
         dWxh, dWhh, dWhy = (
             np.zeros_like(self.Wxh),
             np.zeros_like(self.Whh),
             np.zeros_like(self.Why),
         )
         dbh, dby = np.zeros_like(self.bh), np.zeros_like(self.by)
-
-        # gradient of F_t (future loss L_t+1 ... L_T) w.r.t. h_t
-        dFdh = np.zeros((1, self.hidden_size))
-
-        # backprop thr. time
+        dhnext = np.zeros_like(hs[0])
         for t in reversed(range(len(inputs))):
-            dzy = np.copy(ps[t])  # loss at t w.r.t zy
-            dzy[:, targets[t]] -= 1
-
-            # 2nd layer
-            dWhy += dzy.T @ hs[t]
-            dby += dzy
-
-            # intermediate gradients
-            dLdh = dzy @ self.Why  # gradient of loss at L_t w.r.t hidden state h_t
-            dhdzh = 1 - hs[t] ** 2  # gradient thr. tanh activation
-            dFprevdh = dLdh + dFdh  # gradient of F_{t-1} w.r.t h_t
-            dFprevdzh = dFprevdh * dhdzh  # gradient of F_{t-1} w.r.t z_h
-
-            # 1st layer
-            dWxh += dFprevdzh.T @ xs[t]
-            dWhh += dFprevdzh.T @ hs[t - 1]
-            dbh += dFprevdzh
-
-            dFdh = dFprevdzh @ self.Whh  # update dFdh for next timestep t-1
+            dy = np.copy(ps[t])
+            dy[
+                targets[t]
+            ] -= 1  # backprop into y. see http://cs231n.github.io/neural-networks-case-study/#grad if confused here
+            dWhy += np.dot(dy, hs[t].T)
+            dby += dy
+            dh = np.dot(self.Why.T, dy) + dhnext  # backprop into h
+            dhraw = (1 - hs[t] * hs[t]) * dh  # backprop through tanh nonlinearity
+            dbh += dhraw
+            dWxh += np.dot(dhraw, xs[t].T)
+            dWhh += np.dot(dhraw, hs[t - 1].T)
+            dhnext = np.dot(self.Whh.T, dhraw)
 
         gradients = (dWxh, dWhh, dWhy, dbh, dby)  # collect gradients
         hnext = hs[len(inputs) - 1]  # final hidden state
 
         return loss, gradients, hnext
+
+    # def loss(self, inputs: list[int], targets: list[int], hprev=None):
+    #     """
+    #     Computes loss between input and target chars idxes and returns
+    #     the loss, gradients (dWxh, dWhh, dWhy, dbh, dby), and final hidden state
+    #     """
+    #     assert len(inputs) == len(targets)
+    #     xs, hs, ys, ps = {}, {}, {}, {}
+
+    #     hs[-1] = np.copy(hprev)
+    #     loss = 0
+    #     # forward pass
+    #     for t in range(len(inputs)):
+    #         xs[t] = np.zeros((1, self.vocab_size))  # encode in 1-of-k representation
+    #         xs[t][0, inputs[t]] = 1
+    #         hs[t] = np.tanh(
+    #             np.dot(xs[t], self.Wxh.T)
+    #             + np.dot(
+    #                 hs[t - 1],
+    #                 self.Whh.T,
+    #             )
+    #             + self.bh
+    #         )  # hidden state
+    #         ys[t] = (
+    #             np.dot(hs[t], self.Why.T) + self.by
+    #         )  # unnormalized log probabilities for next chars
+    #         ps[t] = np.exp(ys[t]) / np.sum(
+    #             np.exp(ys[t])
+    #         )  # probabilities for next chars
+    #         loss += -np.log(ps[t][0, targets[t]])  # softmax (cross-entropy loss)
+
+    #     # gradient of loss w.r.t weights and biases
+    #     dWxh, dWhh, dWhy = (
+    #         np.zeros_like(self.Wxh),
+    #         np.zeros_like(self.Whh),
+    #         np.zeros_like(self.Why),
+    #     )
+    #     dbh, dby = np.zeros_like(self.bh), np.zeros_like(self.by)
+    #     dhnext = np.zeros_like(hs[0])
+    #     for t in reversed(range(len(inputs))):
+    #         dy = np.copy(ps[t])  # (1, l)
+    #         dy[
+    #             0, targets[t]
+    #         ] -= 1  # backprop into y. see http://cs231n.github.io/neural-networks-case-study/#grad if confused here
+    #         dWhy += np.dot(dy.T, hs[t])  # (l, n) (l, 1) (1, h_T)
+    #         dby += dy
+
+    #         dh = np.dot(dy, self.Why) + dhnext  # (1, n) (n, 1) ()
+
+    #         # (n, 1) (n, l) (l, 1)
+    #         dhraw = (1 - hs[t] * hs[t]) * dh  # backprop through tanh nonlinearity
+    #         dbh += dhraw
+    #         dWxh += np.dot(dhraw.T, xs[t])
+    #         dWhh += np.dot(dhraw.T, hs[t - 1])
+    #         dhnext = np.dot(dhraw, self.Whh)
+    #         # (n, 1) (n, n) (n, 1)
+
+    #         gradients = (dWxh, dWhh, dWhy, dbh, dby)  # collect gradients
+    #         hnext = hs[len(inputs) - 1]  # final hidden state
+
+    #     return loss, gradients, hnext
 
     def save(self, path: str):
         """Save the weights and vocab as a pickle file"""

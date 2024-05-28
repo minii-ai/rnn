@@ -81,6 +81,7 @@ def train_loop(
 
             batch = data[i : i + seq_length]
             inputs, targets = batch[:-1], batch[1:]  # prepare input, target for loss
+            inputs, targets = rnn.encode(inputs), rnn.encode(targets)
 
             # compute loss and gradients
             loss, gradients, h = rnn.loss(inputs, targets, h)

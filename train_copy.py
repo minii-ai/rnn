@@ -39,7 +39,8 @@ def build_vocab(data: str) -> str:
 
 def clip_gradients(gradients):
     for gradient in gradients:
-        np.clip(gradient, -1, 1, out=gradient)  # clip gradient in-place
+        # np.clip(gradient, -1, 1, out=gradient)  # clip gradient in-place
+        np.clip(gradient, -5, 5, out=gradient)  # clip gradient in-place
 
 
 def train_loop(
@@ -81,7 +82,8 @@ def train_loop(
     while True:
         for batch in dataset:
             batch_ids = rnn.encode(batch)  # convert batch to idxes
-            h = np.zeros((1, rnn.hidden_size))  # initial hidden state
+            # h = np.zeros((1, rnn.hidden_size))  # initial hidden state
+            h = np.zeros((rnn.hidden_size, 1))  # initial hidden state
             for i in range(0, len(batch_ids), seq_length):
                 seq = batch_ids[i : i + seq_length]
                 inputs, targets = (seq[:-1], seq[1:])  # prepare input, target for loss
