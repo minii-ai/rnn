@@ -266,15 +266,15 @@ We now have everything we need to implement backprop. In `rnn.py` we will transl
 
 We'll implement a version of gradient descent called Adagrad. One of the common problems training RNNs are the exploding vanishing gradients. Adagrad *adapts* our learning rate so that we take smaller steps when the gradients are big and bigger steps when gradients are small. This improves our training stability significantly. In fact, using vanilla stochastic gradient descent, training does not converge.
 
-$$
+```math
 g_t = \nabla_{\theta} L(\theta_t)
-$$
-$$
+```
+```math
 G_t = G_{t-1} + g_t^2
-$$
-$$
+```
+```math
 \theta_{t+1} = \theta_t - \frac{\eta}{\sqrt{G_t + \epsilon}} g_t
-$$
+```
 
 We implement this in `train.py`.
 
