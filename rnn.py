@@ -51,8 +51,8 @@ class RNN:
         self.Why = np.random.randn(self.vocab_size, hidden_size) * 0.01
 
         # biases
-        self.bh = np.random.randn(1, hidden_size)
-        self.by = np.random.randn(1, self.vocab_size)
+        self.bh = np.zeros((1, hidden_size))
+        self.by = np.zeros((1, self.vocab_size))
 
         self.weights = (self.Wxh, self.Whh, self.Why, self.bh, self.by)
         self.num_params = sum(w.size for w in self.weights)
@@ -129,6 +129,27 @@ class RNN:
             hs[t] = h
             ps[t] = p
             loss += -np.log(ps[t][0, targets[t]])
+
+        # ===
+        # xs, hs, ys, ps = {}, {}, {}, {}
+        # hs[-1] = np.copy(hprev)
+        # loss = 0
+        # # forward pass
+        # for t in range(len(inputs)):
+        #     xs[t] = np.zeros((1, self.vocab_size))  # encode in 1-of-k representation
+        #     xs[t][0, inputs[t]] = 1
+        #     hs[t] = np.tanh(
+        #         np.dot(xs[t], self.Wxh.T) + np.dot(hs[t - 1], self.Whh.T) + self.bh
+        #     )  # hidden state
+        #     ys[t] = (
+        #         np.dot(hs[t], self.Why.T) + self.by
+        #     )  # unnormalized log probabilities for next chars
+        #     ps[t] = np.exp(ys[t]) / np.sum(
+        #         np.exp(ys[t])
+        #     )  # probabilities for next chars
+        #     loss += -np.log(ps[t][0, targets[t]])  # softmax (cross-entropy loss)
+
+        # ===
 
         # gradient of loss w.r.t weights and biases
         dWxh, dWhh, dWhy = (

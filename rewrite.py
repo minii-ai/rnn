@@ -4,6 +4,7 @@ BSD License
 """
 
 import numpy as np
+from rnn import RNN
 
 # data I/O
 data = open(
@@ -26,6 +27,8 @@ Whh = np.random.randn(hidden_size, hidden_size) * 0.01  # hidden to hidden
 Why = np.random.randn(vocab_size, hidden_size) * 0.01  # hidden to output
 bh = np.zeros((hidden_size, 1))  # hidden bias
 by = np.zeros((vocab_size, 1))  # output bias
+
+rnn = RNN(hidden_size, chars)
 
 
 def lossFun(inputs, targets, hprev):
@@ -90,34 +93,43 @@ def sample(h, seed_ix, n):
 
 
 n, p = 0, 0
-mWxh, mWhh, mWhy = np.zeros_like(Wxh), np.zeros_like(Whh), np.zeros_like(Why)
-mbh, mby = np.zeros_like(bh), np.zeros_like(by)  # memory variables for Adagrad
+# memory variables for Adagrad
+mWxh, mWhh, mWhy = (
+    np.zeros_like(rnn.Wxh),
+    np.zeros_like(rnn.Whh),
+    np.zeros_like(rnn.Why),
+)
+mbh, mby = np.zeros_like(rnn.bh), np.zeros_like(rnn.by)  # memory variables for Adagrad
+
 smooth_loss = -np.log(1.0 / vocab_size) * seq_length  # loss at iteration 0
 while True:
     # prepare inputs (we're sweeping from left to right in steps seq_length long)
     if p + seq_length + 1 >= len(data) or n == 0:
-        hprev = np.zeros((hidden_size, 1))  # reset RNN memory
+        hprev = np.zeros((1, hidden_size))  # reset RNN memory
         p = 0  # go from start of data
-    inputs = [char_to_ix[ch] for ch in data[p : p + seq_length]]
-    targets = [char_to_ix[ch] for ch in data[p + 1 : p + seq_length + 1]]
+    inputs = rnn.encode(data[p : p + seq_length])
+    targets = rnn.encode(data[p + 1 : p + seq_length + 1])
 
     # sample from the model now and then
     if n % 1000 == 0:
         # sample_ix = sample(hprev, char_to_ix['"'], 600)
-        sample_ix = sample(np.zeros((hidden_size, 1)), char_to_ix['"'], 600)
-        txt = "".join(ix_to_char[ix] for ix in sample_ix)
+        # sample_ix = sample(np.zeros((hidden_size, 1)), char_to_ix['"'], 600)
+        # txt = "".join(rnn.idx_to_char[ix] for ix in sample_ix)
+        txt = rnn.sample('"', 600, 0.5)
         print("----\n %s \n----" % (txt,))
 
     # forward seq_length characters through the net and fetch gradient
-    loss, dWxh, dWhh, dWhy, dbh, dby, hprev = lossFun(inputs, targets, hprev)
+    loss, gradients, hprev = rnn.loss(inputs, targets, hprev)
     smooth_loss = smooth_loss * 0.999 + loss * 0.001
     if n % 1000 == 0:
         print("iter %d, loss: %f" % (n, smooth_loss))  # print progress
 
-    # perform parameter update with Adagrad
+    for dparam in gradients:
+        np.clip(dparam, -5, 5, out=dparam)  # clip to mitigate exploding gradients
+
     for param, dparam, mem in zip(
-        [Wxh, Whh, Why, bh, by],
-        [dWxh, dWhh, dWhy, dbh, dby],
+        rnn.weights,
+        gradients,
         [mWxh, mWhh, mWhy, mbh, mby],
     ):
         mem += dparam * dparam

@@ -115,7 +115,7 @@ def train_loop(
 
 
 def main(args):
-    np.random.seed(0)
+    # np.random.seed(0)
     data = read_file(args.data)  # read data from txt file
     vocab = build_vocab(data)  # build vocab of unique chars
     rnn = RNN(hidden_size=args.hidden_size, vocab=vocab)  # init rnn
