@@ -24,25 +24,24 @@ class RNN:
             rnn.by = data["by"]
             return rnn
 
-    def __init__(self, hidden_size: int, vocab: str):
+    def __init__(self, hidden_size: int, vocab: list[str]):
         """
         Initialize the weight and bias matrices
 
         Params:
             - hidden_size: hidden state dim
-            - vocab: string of unique chars
+            - vocab: list of unique chars
         """
+        # params + tokenizer
         self.hidden_size = hidden_size
-        self.vocab = vocab
-        self.vocab_size = len(vocab) + 1
-        self.char_to_idx = {char: i for i, char in enumerate(vocab)}
-        self.idx_to_char = {i: char for i, char in enumerate(vocab)}
-
-        # add EOS token
+        self.start_token = "<S>"
         self.eos_token = "<EOS>"
-        self.eos_token_idx = self.vocab_size - 1
-        self.char_to_idx[self.eos_token] = self.eos_token_idx
-        self.idx_to_char[self.eos_token_idx] = self.eos_token
+        self.start_token_idx = 0
+        self.eos_token_idx = 1
+        self.vocab = [self.start_token, self.eos_token] + vocab
+        self.vocab_size = len(self.vocab)
+        self.char_to_idx = {char: i for i, char in enumerate(self.vocab)}
+        self.idx_to_char = {i: char for i, char in enumerate(self.vocab)}
 
         # weights
         self.Wxh = np.random.randn(hidden_size, self.vocab_size) * 0.01
@@ -58,12 +57,20 @@ class RNN:
 
     def encode(self, chars: str):
         """Turns a string of chars into idxes"""
-        ids = [self.char_to_idx[char] for char in chars] + [self.eos_token_idx]
+        ids = (
+            [self.start_token_idx]
+            + [self.char_to_idx[char] for char in chars]
+            + [self.eos_token_idx]
+        )
         return ids
 
     def decode(self, idxes: list[int]):
         """Turns a list of idxes into chars"""
-        chars = [self.idx_to_char[idx] for idx in idxes if idx != self.eos_token_idx]
+        chars = [
+            self.idx_to_char[idx]
+            for idx in idxes
+            if idx != self.eos_token_idx and idx != self.start_token_idx
+        ]
         return "".join(chars)
 
     def __call__(self, x, h, t=1.0) -> np.ndarray:
@@ -76,24 +83,21 @@ class RNN:
 
         return y, hnext
 
-    def sample(self, c: int, t: float = 1.0):
-        """Generates samples starting with c (idx) at temperature t"""
+    def sample(self, t: float = 1.0, n: int = 1000):
+        """Generates unconditional samples with temperature t, with max tokens n"""
         sample = []
-        for i in self.sample_progressive(c, t):
+        for i in self.sample_progressive(t, n):
             sample.append(i)
 
         return sample
 
-    def sample_progressive(self, c: int, t: float = 1.0):
-        """Generate one char at a time, starting with c for n iterations at temperature t"""
-        assert c in self.idx_to_char
+    def sample_progressive(self, t: float = 1.0, n: int = 1000):
+        """Generate one char at a time, starting at temperature t with max tokens n"""
         x = np.zeros((1, self.vocab_size))
-        x[0, c] = 1  # create one hot encoding for char
+        x[0, self.start_token_idx] = 1  # create one hot encoding for char
         h = np.zeros((1, self.hidden_size))  # initialize hidden state to all 0s
 
-        yield c
-
-        while True:
+        for i in range(n):
             probs, h = self(x, h, t)  # sample next token probs
             idx = np.random.choice(self.vocab_size, p=probs.ravel())
 

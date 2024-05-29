@@ -15,7 +15,6 @@ def parse_args():
     parser.add_argument("--seq_length", "-s", type=int, default=25)
     parser.add_argument("--save_path", "-sp", required=True)
     parser.add_argument("--val_steps", "-vs", type=int, default=100)
-    parser.add_argument("--val_c", "-vc", type=str, default="h")
     parser.add_argument("--val_t", "-vt", type=float, default=1.0)
 
     return parser.parse_args()
@@ -28,10 +27,10 @@ def read_file(path: str):
 
 def build_vocab(data: str) -> str:
     chars = set()
-    vocab = ""
+    vocab = []
     for char in data:
         if char not in chars:
-            vocab += char
+            vocab.append(char)
             chars.add(char)
 
     return vocab
@@ -49,7 +48,6 @@ def train_loop(
     lr: float,
     seq_length: int,
     val_steps: int,
-    val_c: str,
     val_t: float,
     save_path: str,
 ):
@@ -92,7 +90,7 @@ def train_loop(
                 # sample
                 if (n + 1) % val_steps == 0 or n == 0 or n == iters - 1:
                     tqdm.write(f"iter: {n + 1}, loss: {smooth_loss}")
-                    idxes = rnn.sample(rnn.char_to_idx[val_c], val_t)
+                    idxes = rnn.sample(val_t)
                     txt = rnn.decode(idxes)
                     tqdm.write(f"----\n{txt}\n----")
                     tqdm.write("")
@@ -124,6 +122,7 @@ def main(args):
     data = read_file(args.data)  # read txt file
     dataset = re.split(r"\n\s*\n", data)  # split data into paragraphs
     vocab = build_vocab(data)  # build vocab of unique chars
+
     rnn = RNN(args.hidden_size, vocab)
 
     train_loop(
@@ -133,7 +132,6 @@ def main(args):
         lr=args.lr,
         seq_length=args.seq_length,
         val_steps=args.val_steps,
-        val_c=args.val_c,
         val_t=args.val_t,
         save_path=args.save_path,
     )
