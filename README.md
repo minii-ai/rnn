@@ -14,6 +14,19 @@ poetry install
 
 # Dataset
 
+To build a dataset, make a txt file. Every sequence will be seperated by a newline.
+
+Snippet from `./data/stevejobs.txt`. In the example below, there are 2 items.
+
+```txt
+"Remembering that you are going to die is the best way I know to avoid the trap of thinking you have something to lose. You are already naked. There is no reason not to follow your heart."
+― Steve Jobs
+
+"Being the richest man in the cemetery doesn't matter to me. Going to bed at night saying we've done something wonderful... that's what matters to me."
+― Steve Jobs
+
+...
+```
 
 # Quick Start
 
@@ -21,17 +34,29 @@ Train and sample from RNN.
 
 ## Training
 
+Training on Steve Jobs dataset for 100000 iterations at `lr = 1e-1` with sequence length `s`. Weights will be saved to `./weights.pkl`. Checkpoints every 1000 steps, sample beginning with char `c` at temperature `0.5`.
 
 ```bash
-
+python3 train.py \
+    -d "./data/stevejobs.txt" \
+    -i 100000 \
+    -lr 1e-1 \
+    -s 25 \
+    -sp "./weights.pkl" \
+    -vs 1000 \
+    -vc c \
+    -vt 0.5 \
 ```
 
 ## Inference
 
-Load weights and generate `N` characters starting with `C`.
+Load weights and generate `3` characters starting with `C`.
 
 ```bash
-python3 inference.py -w ./weights.pkl -c C -n N
+python3 inference.py \
+    -w ./weights.pkl \
+    -c C \
+    -n 3 \
 ```
 
 # Background

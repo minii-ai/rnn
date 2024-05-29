@@ -11,7 +11,7 @@ def parse_args():
     parser.add_argument("--data", "-d", type=str, default="./data/stevejobs_short.txt")
     parser.add_argument("--hidden_size", "-hs", type=int, default=64)
     parser.add_argument("--iters", "-i", type=int, default=1000)
-    parser.add_argument("--lr", type=float, default=1e-1)
+    parser.add_argument("--lr", "-lr", type=float, default=1e-1)
     parser.add_argument("--seq_length", "-s", type=int, default=25)
     parser.add_argument("--save_path", "-sp")
     parser.add_argument("--val_steps", "-vs", type=int, default=100)
