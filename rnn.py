@@ -121,7 +121,7 @@ class RNN:
         )  # store initial hidden state
         loss = 0
 
-        # forward pass
+        # compute loss at each timestep
         for t in range(len(inputs)):
             x = np.zeros((1, self.vocab_size))
             x[0, inputs[t]] = 1  # one hot encoding
@@ -130,7 +130,7 @@ class RNN:
             xs[t] = x  # store x, hidden state, probs (we'll need them for backprop)
             hs[t] = h
             ps[t] = p
-            loss += -np.log(ps[t][0, targets[t]])
+            loss += -np.log(ps[t][0, targets[t]])  # cross entropy loss
 
         # gradient of loss w.r.t weights and biases
         dWxh, dWhh, dWhy = (
