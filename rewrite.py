@@ -1,139 +1,121 @@
-"""
-Minimal character-level Vanilla RNN model. Written by Andrej Karpathy (@karpathy)
-BSD License
-"""
-
 import numpy as np
 from rnn import RNN
+import argparse
+import re
+import random
 
-# data I/O
-data = open(
-    "./data/stevejobs_short.txt", "r"
-).read()  # should be simple plain text file
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--data", "-d", type=str, default="./data/stevejobs.txt")
+    parser.add_argument("--hidden_size", "-hs", type=int, default=64)
+    parser.add_argument("--iters", "-i", type=int, default=1000)
+    parser.add_argument("--lr", type=float, default=1e-1)
+    parser.add_argument("--seq_length", "-s", type=int, default=25)
+    parser.add_argument("--save_path", "-sp", required=True)
+    parser.add_argument("--val_n", "-vn", type=int, default=50)
+    parser.add_argument("--val_steps", "-vs", type=int, default=100)
+    parser.add_argument("--val_c", "-vc", type=str, default="h")
+    parser.add_argument("--val_t", "-vt", type=float, default=0.5)
+
+    return parser.parse_args()
+
+
+def read_file(path: str):
+    with open(path, "r") as f:
+        return f.read()
+
+
+def build_dataset(path: str):
+    data = read_file(path)
+    dataset = re.split(r"\n\s*\n", data)  # split data into paragraphs
+    return dataset
+
+
+def clip_gradients(gradients):
+    for gradient in gradients:
+        np.clip(gradient, -1, 1, out=gradient)  # clip gradient in-place
+
+
+data = read_file("./data/stevejobs_short.txt")
 chars = list(set(data))
 data_size, vocab_size = len(data), len(chars)
 print("data has %d characters, %d unique.", (data_size, vocab_size))
-char_to_ix = {ch: i for i, ch in enumerate(chars)}
-ix_to_char = {i: ch for i, ch in enumerate(chars)}
+
+
+dataset = build_dataset("./data/stevejobs_short.txt")
+
 
 # hyperparameters
 hidden_size = 100  # size of hidden layer of neurons
 seq_length = 25  # number of steps to unroll the RNN for
-learning_rate = 1e-1
-
-# model parameters
-Wxh = np.random.randn(hidden_size, vocab_size) * 0.01  # input to hidden
-Whh = np.random.randn(hidden_size, hidden_size) * 0.01  # hidden to hidden
-Why = np.random.randn(vocab_size, hidden_size) * 0.01  # hidden to output
-bh = np.zeros((hidden_size, 1))  # hidden bias
-by = np.zeros((vocab_size, 1))  # output bias
-
-rnn = RNN(hidden_size, chars)
+lr = 1e-1
 
 
-def lossFun(inputs, targets, hprev):
-    """
-    inputs,targets are both list of integers.
-    hprev is Hx1 array of initial hidden state
-    returns the loss, gradients on model parameters, and last hidden state
-    """
-    xs, hs, ys, ps = {}, {}, {}, {}
-    hs[-1] = np.copy(hprev)
-    loss = 0
-    # forward pass
-    for t in range(len(inputs)):
-        xs[t] = np.zeros((vocab_size, 1))  # encode in 1-of-k representation
-        xs[t][inputs[t]] = 1
-        hs[t] = np.tanh(
-            np.dot(Wxh, xs[t]) + np.dot(Whh, hs[t - 1]) + bh
-        )  # hidden state
-        ys[t] = np.dot(Why, hs[t]) + by  # unnormalized log probabilities for next chars
-        ps[t] = np.exp(ys[t]) / np.sum(np.exp(ys[t]))  # probabilities for next chars
-        loss += -np.log(ps[t][targets[t], 0])  # softmax (cross-entropy loss)
-    # backward pass: compute gradients going backwards
-    dWxh, dWhh, dWhy = np.zeros_like(Wxh), np.zeros_like(Whh), np.zeros_like(Why)
-    dbh, dby = np.zeros_like(bh), np.zeros_like(by)
-    dhnext = np.zeros_like(hs[0])
-    for t in reversed(range(len(inputs))):
-        dy = np.copy(ps[t])
-        dy[
-            targets[t]
-        ] -= 1  # backprop into y. see http://cs231n.github.io/neural-networks-case-study/#grad if confused here
-        dWhy += np.dot(dy, hs[t].T)
-        dby += dy
-        dh = np.dot(Why.T, dy) + dhnext  # backprop into h
-        dhraw = (1 - hs[t] * hs[t]) * dh  # backprop through tanh nonlinearity
-        dbh += dhraw
-        dWxh += np.dot(dhraw, xs[t].T)
-        dWhh += np.dot(dhraw, hs[t - 1].T)
-        dhnext = np.dot(Whh.T, dhraw)
-    for dparam in [dWxh, dWhh, dWhy, dbh, dby]:
-        np.clip(dparam, -5, 5, out=dparam)  # clip to mitigate exploding gradients
-    return loss, dWxh, dWhh, dWhy, dbh, dby, hs[len(inputs) - 1]
+def train_loop():
+    pass
 
 
-def sample(h, seed_ix, n):
-    """
-    sample a sequence of integers from the model
-    h is memory state, seed_ix is seed letter for first time step
-    """
-    x = np.zeros((vocab_size, 1))
-    x[seed_ix] = 1
-    ixes = []
-    for t in range(n):
-        h = np.tanh(np.dot(Wxh, x) + np.dot(Whh, h) + bh)
-        y = np.dot(Why, h) + by
-        # p = np.exp(y) / np.sum(np.exp(y))
-        p = np.exp(y / 0.5) / np.sum(np.exp(y / 0.5))
-        ix = np.random.choice(range(vocab_size), p=p.ravel())
-        x = np.zeros((vocab_size, 1))
-        x[ix] = 1
-        ixes.append(ix)
-    return ixes
+def main():
+
+    rnn = RNN(hidden_size, chars)
+
+    # memory variables for Adagrad
+    mWxh, mWhh, mWhy = (
+        np.zeros_like(rnn.Wxh),
+        np.zeros_like(rnn.Whh),
+        np.zeros_like(rnn.Why),
+    )
+    mbh, mby = np.zeros_like(rnn.bh), np.zeros_like(
+        rnn.by
+    )  # memory variables for Adagrad
+
+    n, p = 0, 0
+    smooth_loss = -np.log(1.0 / vocab_size) * seq_length  # loss at iteration 0
+
+    print(len(dataset))
+
+    while True:
+        shuffled_list = random.sample(dataset, len(dataset))
+
+        for minibatch in shuffled_list:
+
+            # prepare inputs (we're sweeping from left to right in steps seq_length long)
+            hprev = np.zeros((1, hidden_size))  # reset RNN memory
+
+            for p in range(0, len(minibatch), seq_length):
+                batch = data[p : p + seq_length + 1]
+                inputs, targets = (
+                    batch[:-1],
+                    batch[1:],
+                )  # prepare input, target for loss
+                inputs = rnn.encode(inputs)
+                targets = rnn.encode(targets)
+
+                # sample from the model now and then
+                if n % 1000 == 0:
+                    txt = rnn.sample('"', 600, 1.0)
+                    print("----\n %s \n----" % (txt,))
+
+                # forward seq_length characters through the net and fetch gradient
+                loss, gradients, hprev = rnn.loss(inputs, targets, hprev)
+                smooth_loss = smooth_loss * 0.999 + loss * 0.001
+                if n % 1000 == 0:
+                    print("iter %d, loss: %f" % (n, smooth_loss))  # print progress
+
+                clip_gradients(gradients)
+
+                for param, dparam, mem in zip(
+                    rnn.weights,
+                    gradients,
+                    [mWxh, mWhh, mWhy, mbh, mby],
+                ):
+                    mem += dparam**2
+                    param += -lr * dparam / np.sqrt(mem + 1e-8)  # adagrad update
+
+                p += seq_length  # move data pointer
+                n += 1  # iteration counter
 
 
-n, p = 0, 0
-# memory variables for Adagrad
-mWxh, mWhh, mWhy = (
-    np.zeros_like(rnn.Wxh),
-    np.zeros_like(rnn.Whh),
-    np.zeros_like(rnn.Why),
-)
-mbh, mby = np.zeros_like(rnn.bh), np.zeros_like(rnn.by)  # memory variables for Adagrad
-
-smooth_loss = -np.log(1.0 / vocab_size) * seq_length  # loss at iteration 0
-while True:
-    # prepare inputs (we're sweeping from left to right in steps seq_length long)
-    if p + seq_length + 1 >= len(data) or n == 0:
-        hprev = np.zeros((1, hidden_size))  # reset RNN memory
-        p = 0  # go from start of data
-    inputs = rnn.encode(data[p : p + seq_length])
-    targets = rnn.encode(data[p + 1 : p + seq_length + 1])
-
-    # sample from the model now and then
-    if n % 1000 == 0:
-        # sample_ix = sample(hprev, char_to_ix['"'], 600)
-        # sample_ix = sample(np.zeros((hidden_size, 1)), char_to_ix['"'], 600)
-        # txt = "".join(rnn.idx_to_char[ix] for ix in sample_ix)
-        txt = rnn.sample('"', 600, 0.5)
-        print("----\n %s \n----" % (txt,))
-
-    # forward seq_length characters through the net and fetch gradient
-    loss, gradients, hprev = rnn.loss(inputs, targets, hprev)
-    smooth_loss = smooth_loss * 0.999 + loss * 0.001
-    if n % 1000 == 0:
-        print("iter %d, loss: %f" % (n, smooth_loss))  # print progress
-
-    for dparam in gradients:
-        np.clip(dparam, -5, 5, out=dparam)  # clip to mitigate exploding gradients
-
-    for param, dparam, mem in zip(
-        rnn.weights,
-        gradients,
-        [mWxh, mWhh, mWhy, mbh, mby],
-    ):
-        mem += dparam * dparam
-        param += -learning_rate * dparam / np.sqrt(mem + 1e-8)  # adagrad update
-
-    p += seq_length  # move data pointer
-    n += 1  # iteration counter
+if __name__ == "__main__":
+    main()

@@ -130,27 +130,6 @@ class RNN:
             ps[t] = p
             loss += -np.log(ps[t][0, targets[t]])
 
-        # ===
-        # xs, hs, ys, ps = {}, {}, {}, {}
-        # hs[-1] = np.copy(hprev)
-        # loss = 0
-        # # forward pass
-        # for t in range(len(inputs)):
-        #     xs[t] = np.zeros((1, self.vocab_size))  # encode in 1-of-k representation
-        #     xs[t][0, inputs[t]] = 1
-        #     hs[t] = np.tanh(
-        #         np.dot(xs[t], self.Wxh.T) + np.dot(hs[t - 1], self.Whh.T) + self.bh
-        #     )  # hidden state
-        #     ys[t] = (
-        #         np.dot(hs[t], self.Why.T) + self.by
-        #     )  # unnormalized log probabilities for next chars
-        #     ps[t] = np.exp(ys[t]) / np.sum(
-        #         np.exp(ys[t])
-        #     )  # probabilities for next chars
-        #     loss += -np.log(ps[t][0, targets[t]])  # softmax (cross-entropy loss)
-
-        # ===
-
         # gradient of loss w.r.t weights and biases
         dWxh, dWhh, dWhy = (
             np.zeros_like(self.Wxh),
