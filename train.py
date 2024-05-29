@@ -8,15 +8,15 @@ from tqdm import tqdm
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--data", "-d", type=str, default="./data/stevejobs_short.txt")
+    parser.add_argument("--data", "-d", type=str, default="./data/stevejobs.txt")
     parser.add_argument("--hidden_size", "-hs", type=int, default=64)
     parser.add_argument("--iters", "-i", type=int, default=1000)
     parser.add_argument("--lr", "-lr", type=float, default=1e-1)
     parser.add_argument("--seq_length", "-s", type=int, default=25)
-    parser.add_argument("--save_path", "-sp")
+    parser.add_argument("--save_path", "-sp", required=True)
     parser.add_argument("--val_steps", "-vs", type=int, default=100)
     parser.add_argument("--val_c", "-vc", type=str, default="h")
-    parser.add_argument("--val_t", "-vt", type=float, default=0.5)
+    parser.add_argument("--val_t", "-vt", type=float, default=1.0)
 
     return parser.parse_args()
 
@@ -51,6 +51,7 @@ def train_loop(
     val_steps: int,
     val_c: str,
     val_t: float,
+    save_path: str,
 ):
     print("[INFO] Training...")
     print(f"[INFO] data_size = {len(dataset)}")
@@ -95,6 +96,7 @@ def train_loop(
                     txt = rnn.decode(idxes)
                     tqdm.write(f"----\n{txt}\n----")
                     tqdm.write("")
+                    rnn.save(save_path)
 
                 # adagrad gradient descent
                 for param, dparam, mem in zip(
@@ -133,6 +135,7 @@ def main(args):
         val_steps=args.val_steps,
         val_c=args.val_c,
         val_t=args.val_t,
+        save_path=args.save_path,
     )
 
 
