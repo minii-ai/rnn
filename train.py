@@ -71,6 +71,7 @@ def train_loop(
     n = 0
     pbar = tqdm(total=iters, position=0)
     smooth_loss = -np.log(1.0 / rnn.vocab_size) * seq_length  # loss at iteration 0
+    smooth_perplexity = 2 ** smooth_loss
 
     while True:
         batches = random.sample(dataset, len(dataset))
@@ -84,12 +85,14 @@ def train_loop(
 
                 # compute loss and clip gradients
                 loss, gradients, hprev = rnn.loss(inputs, targets, hprev)
+                perplexity = 2 ** loss # 2 ^ cross entropy
                 smooth_loss = smooth_loss * 0.999 + loss * 0.001
+                smooth_perplexity = perplexity * 0.999 + loss * 0.001
                 clip_gradients(gradients)
 
                 # sample
                 if (n + 1) % val_steps == 0 or n == 0 or n == iters - 1:
-                    tqdm.write(f"iter: {n + 1}, loss: {smooth_loss}")
+                    tqdm.write(f"iter: {n + 1}, loss: {smooth_loss}, perplexity: {smooth_perplexity}")
                     idxes = rnn.sample(val_t)
                     txt = rnn.decode(idxes)
                     tqdm.write(f"----\n{txt}\n----")
