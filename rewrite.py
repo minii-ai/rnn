@@ -14,7 +14,6 @@ def parse_args():
     parser.add_argument("--lr", type=float, default=1e-1)
     parser.add_argument("--seq_length", "-s", type=int, default=25)
     parser.add_argument("--save_path", "-sp")
-    parser.add_argument("--val_n", "-vn", type=int, default=50)
     parser.add_argument("--val_steps", "-vs", type=int, default=100)
     parser.add_argument("--val_c", "-vc", type=str, default="h")
     parser.add_argument("--val_t", "-vt", type=float, default=0.5)
@@ -59,7 +58,19 @@ def train_loop(
     iters: int,
     lr: float,
     seq_length: int,
+    val_steps: int,
+    val_c: str,
+    val_t: float,
 ):
+    print("[INFO] Training...")
+    print(f"[INFO] data_size = {len(dataset)}")
+    print(f"[INFO] num_params = {rnn.num_params}")
+    print(f"[INFO] vocab_size = {rnn.vocab_size}")
+    print(f"[INFO] hidden_size = {rnn.hidden_size}")
+    print(f"[INFO] lr = {lr}")
+    print(f"[INFO] iters = {iters}")
+    print(f"[INFO] seq_length = {seq_length}")
+
     # memory variables for Adagrad
     mWxh, mWhh, mWhy = (
         np.zeros_like(rnn.Wxh),
@@ -69,6 +80,7 @@ def train_loop(
     mbh, mby = np.zeros_like(rnn.bh), np.zeros_like(rnn.by)
 
     n = 0
+    pbar = tqdm(total=iters, position=0)
     smooth_loss = -np.log(1.0 / vocab_size) * seq_length  # loss at iteration 0
 
     while True:
@@ -81,19 +93,20 @@ def train_loop(
                 batch = minibatch_idxs[p : p + seq_length + 1]
                 inputs, targets = batch[:-1], batch[1:]
 
-                # sample from the model now and then
-                if n % 1000 == 0:
-                    txt = rnn.sample('"', 600, 0.5)
-                    print("----\n %s \n----" % (txt,))
-
-                # forward seq_length characters through the net and fetch gradient
+                # compute loss and clip gradients
                 loss, gradients, hprev = rnn.loss(inputs, targets, hprev)
                 smooth_loss = smooth_loss * 0.999 + loss * 0.001
                 clip_gradients(gradients)
 
-                if n % 1000 == 0:
-                    print("iter %d, loss: %f" % (n, smooth_loss))  # print progress
+                # sample
+                if (n + 1) % val_steps == 0 or n == 0 or n == iters - 1:
+                    tqdm.write(f"iter: {n + 1}, loss: {smooth_loss}")
+                    idxes = rnn.sample(rnn.char_to_idx[val_c], val_t)
+                    txt = rnn.decode(idxes)
+                    tqdm.write(f"----\n{txt}\n----")
+                    tqdm.write("")
 
+                # adagrad gradient descent
                 for param, dparam, mem in zip(
                     rnn.weights,
                     gradients,
@@ -102,7 +115,17 @@ def train_loop(
                     mem += dparam**2
                     param += -lr * dparam / np.sqrt(mem + 1e-8)  # adagrad update
 
-                n += 1  # iteration counter
+                n += 1
+                pbar.update(1)
+
+                if n >= iters:
+                    break
+            if n >= iters:
+                break
+        if n >= iters:
+            break
+
+    print("[INFO] Training complete!")
 
 
 def main(args):
@@ -117,6 +140,9 @@ def main(args):
         iters=args.iters,
         lr=args.lr,
         seq_length=args.seq_length,
+        val_steps=args.val_steps,
+        val_c=args.val_c,
+        val_t=args.val_t,
     )
 
 

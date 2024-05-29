@@ -76,34 +76,34 @@ class RNN:
 
         return y, hnext
 
-    def sample(self, char: str, n: int, t: float = 1.0):
-        """Generates samples starting with char for n iterations at temperature t"""
-        sample = ""
-        for char in self.sample_progressive(char, n, t):
-            sample += char
+    def sample(self, c: int, t: float = 1.0):
+        """Generates samples starting with c (idx) at temperature t"""
+        sample = []
+        for i in self.sample_progressive(c, t):
+            sample.append(i)
 
         return sample
 
-    def sample_progressive(self, c: str, n: int, t: float = 1.0):
+    def sample_progressive(self, c: int, t: float = 1.0):
         """Generate one char at a time, starting with c for n iterations at temperature t"""
-        assert len(c) == 1 and c in self.char_to_idx
+        assert c in self.idx_to_char
         x = np.zeros((1, self.vocab_size))
-        x[0, self.char_to_idx[c]] = 1  # create one hot encoding for char
+        x[0, c] = 1  # create one hot encoding for char
         h = np.zeros((1, self.hidden_size))  # initialize hidden state to all 0s
 
         yield c
 
-        for _ in range(n):
-            probs, h = self(x, h, t)
-            idx = np.random.choice(
-                self.vocab_size, p=probs.ravel()
-            )  # sample token idx from output
+        while True:
+            probs, h = self(x, h, t)  # sample next token probs
+            idx = np.random.choice(self.vocab_size, p=probs.ravel())
 
             x = np.zeros((1, self.vocab_size))
             x[0, idx] = 1  # one hot encoding for sampled token
-            char = self.idx_to_char[idx]
 
-            yield char
+            yield idx
+
+            if idx == self.eos_token_idx:  # stop sampling
+                break
 
     def loss(self, inputs: list[int], targets: list[int], hprev=None):
         """
