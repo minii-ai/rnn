@@ -24,7 +24,7 @@ def main(args):
             char = rnn.decode([j])
             sys.stdout.write(char)
             sys.stdout.flush()
-            time.sleep(0.05)  # just to look like chat gpt
+            time.sleep(0.001)  # just to look like chat gpt
 
         print("\n")
 
