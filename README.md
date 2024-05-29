@@ -1,6 +1,6 @@
 # rnn
 
-Time traveling to the past to implement a simple character-level RNN. We'll write the forward pass, backpropagation through time (BPTT), and gradient descent algorithm from scratch without the help of Pytorch. Yes, you'll have to manually calculate the gradients. It will be worth it. After this, we'll train it on small text datasets like _Shakespeare_ and _How to Get Rich_ by Naval.
+Time traveling to the past to implement a simple character-level RNN. We'll write the forward pass, backpropagation through time (BPTT), and gradient descent algorithm from scratch without the help of Pytorch. Yes, you'll have to manually calculate the gradients. It will be worth it. After this, we'll train it on some small text datasets like quotes from Steve Jobs :).
 
 # Installation
 
