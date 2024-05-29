@@ -16,7 +16,7 @@ class RNN:
         """Load weights from pickle file"""
         with open(path, "rb") as f:
             data = pickle.load(f)  # read pickle file
-            rnn = RNN(data["hidden_size"], data["vocab"])
+            rnn = RNN(data["hidden_size"], data["vocab"][2:])
             rnn.Wxh = data["Wxh"]  # load weights
             rnn.Whh = data["Whh"]
             rnn.Why = data["Why"]

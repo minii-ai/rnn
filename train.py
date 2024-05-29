@@ -38,7 +38,7 @@ def build_vocab(data: str) -> str:
 
 def clip_gradients(gradients):
     for gradient in gradients:
-        np.clip(gradient, -1, 1, out=gradient)  # clip gradient in-place
+        np.clip(gradient, -5, 5, out=gradient)  # clip gradient in-place
 
 
 def train_loop(
@@ -52,7 +52,7 @@ def train_loop(
     save_path: str,
 ):
     print("[INFO] Training...")
-    print(f"[INFO] data_size = {len(dataset)}")
+    print(f"[INFO] data_size = {len(''.join(dataset))}")
     print(f"[INFO] num_params = {rnn.num_params}")
     print(f"[INFO] vocab_size = {rnn.vocab_size}")
     print(f"[INFO] hidden_size = {rnn.hidden_size}")
@@ -71,7 +71,7 @@ def train_loop(
     n = 0
     pbar = tqdm(total=iters, position=0)
     smooth_loss = -np.log(1.0 / rnn.vocab_size) * seq_length  # loss at iteration 0
-    smooth_perplexity = 2 ** smooth_loss
+    smooth_perplexity = 2**smooth_loss
 
     while True:
         batches = random.sample(dataset, len(dataset))
@@ -85,14 +85,15 @@ def train_loop(
 
                 # compute loss and clip gradients
                 loss, gradients, hprev = rnn.loss(inputs, targets, hprev)
-                perplexity = 2 ** loss # 2 ^ cross entropy
                 smooth_loss = smooth_loss * 0.999 + loss * 0.001
-                smooth_perplexity = perplexity * 0.999 + loss * 0.001
+                smooth_perplexity = 2**smooth_loss
                 clip_gradients(gradients)
 
                 # sample
                 if (n + 1) % val_steps == 0 or n == 0 or n == iters - 1:
-                    tqdm.write(f"iter: {n + 1}, loss: {smooth_loss}, perplexity: {smooth_perplexity}")
+                    tqdm.write(
+                        f"iter: {n + 1}, loss: {smooth_loss}, perplexity: {smooth_perplexity}"
+                    )
                     idxes = rnn.sample(val_t)
                     txt = rnn.decode(idxes)
                     tqdm.write(f"----\n{txt}\n----")
@@ -125,8 +126,7 @@ def main(args):
     data = read_file(args.data)  # read txt file
     dataset = re.split(r"\n\s*\n", data)  # split data into paragraphs
     vocab = build_vocab(data)  # build vocab of unique chars
-
-    rnn = RNN(args.hidden_size, vocab)
+    rnn = RNN(args.hidden_size, vocab)  # build rnn
 
     train_loop(
         rnn=rnn,

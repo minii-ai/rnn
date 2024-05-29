@@ -34,7 +34,7 @@ Train and sample from RNN.
 
 ## Training
 
-Training on Steve Jobs dataset for 100000 iterations at `lr = 1e-1` with sequence length `s`. Weights will be saved to `./weights.pkl`. Checkpoints every 1000 steps, sample beginning with char `c` at temperature `0.5`.
+Training on Steve Jobs dataset for 100000 iterations at `lr = 1e-1` with sequence length `s`. Weights will be saved to `./weights.pkl`. Checkpoints every 1000 steps and generates sequences unconditionally at temperature `0.5`.
 
 ```bash
 python3 train.py \
@@ -44,19 +44,15 @@ python3 train.py \
     -s 25 \
     -sp "./weights.pkl" \
     -vs 1000 \
-    -vc c \
     -vt 0.5 \
 ```
 
 ## Inference
 
-Load weights and generate `3` characters starting with `C`.
+Load weights and generate `3` samples unconditionally.
 
 ```bash
-python3 inference.py \
-    -w ./weights.pkl \
-    -c C \
-    -n 3 \
+python3 inference.py -w ./weights.pkl -n 3
 ```
 
 # Background
