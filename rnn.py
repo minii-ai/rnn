@@ -34,16 +34,15 @@ class RNN:
         """
         self.hidden_size = hidden_size
         self.vocab = vocab
-        self.vocab_size = len(vocab)
-        # self.vocab_size = len(vocab) + 1
+        self.vocab_size = len(vocab) + 1
         self.char_to_idx = {char: i for i, char in enumerate(vocab)}
         self.idx_to_char = {i: char for i, char in enumerate(vocab)}
 
         # add EOS token
-        # self.eos_token = "<EOS>"
-        # self.eos_token_idx = self.vocab_size - 1
-        # self.char_to_idx[self.eos_token] = self.eos_token_idx
-        # self.idx_to_char[self.eos_token_idx] = self.eos_token
+        self.eos_token = "<EOS>"
+        self.eos_token_idx = self.vocab_size - 1
+        self.char_to_idx[self.eos_token] = self.eos_token_idx
+        self.idx_to_char[self.eos_token_idx] = self.eos_token
 
         # weights
         self.Wxh = np.random.randn(hidden_size, self.vocab_size) * 0.01
@@ -59,8 +58,7 @@ class RNN:
 
     def encode(self, chars: str):
         """Turns a string of chars into idxes"""
-        ids = [self.char_to_idx[char] for char in chars]
-        # ids = [self.char_to_idx[char] for char in chars] + [self.eos_token_idx]
+        ids = [self.char_to_idx[char] for char in chars] + [self.eos_token_idx]
         return ids
 
     def decode(self, idxes: list[int]):
@@ -102,7 +100,7 @@ class RNN:
             )  # sample token idx from output
 
             x = np.zeros((1, self.vocab_size))
-            x[:, idx] = 1  # one hot encoding for sampled token
+            x[0, idx] = 1  # one hot encoding for sampled token
             char = self.idx_to_char[idx]
 
             yield char
